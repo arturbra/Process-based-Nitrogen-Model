@@ -51,6 +51,11 @@ class PondingZone:
         self.flagp = float(setup['PONDING_ZONE']['flagp'])
         self.k_denit_pz = float(setup['DENITRIFICATION']['k_denit_pz'])
 
+    def f_concentration(self, cin, Qin_p, cp_a, I1, Qv, Rxi, hp, hp_a):
+        concentration = (cp_a * hp_a * Ab + (cin * Qin_p - cp_a * (I1 + Qv) + Rxi * hp * Ab) * dt) / (hp * Ab)
+        return concentration
+
+
 
 class UnsaturatedZone:
     def __init__(self, setup_file, L, hpipe, dz):
@@ -210,6 +215,29 @@ class Nutrient:
         self.Mpz_list = []  # massa em cada zona para poder calcular no balanço de massa
         self.Mstor_mb_list = []  # mb mass balance
 
+    def f_transport(self, teta_i, teta_iplus1, ci, cs_i, dc, dc_dz, kads, kdes, D, UF, Rx, dt, ro, f, dz):
+        if teta_i == 0:
+            delta_c_i1 = 0
+        elif teta_iplus1 == 0:
+            delta_c_i1 = 0
+        else:
+            delta_c_i1 = ((1 / teta_iplus1) * dt * (
+                        -teta_i * kads * ci + ro * kdes * cs_i + teta_i * (D * f * (dc / dz ** 2) - UF * dc_dz) + Rx))
+        return delta_c_i1
+
+    def f_concentration_soil(self, cs_a, teta, kads, ci, kdes, ro, dt, method="FO", kmicro=0, Um=0, Km=0):
+        if method == "FO":
+            Rxs = kmicro * cs_a
+        if method == "MM":
+            Rxs = Um * (teta * cs_a / (Km + teta * cs_a))
+
+        cs_abs = cs_a + ((teta / ro) * kads * ci - kdes * cs_a - Rxs) * dt
+
+        if cs_abs <= 0:
+            cs = 0
+        else:
+            cs = cs_abs
+        return cs
 
 class Ammonia(Nutrient):
     def __init__(self, m_usz, m_sz, setup_file):
@@ -225,6 +253,15 @@ class Ammonia(Nutrient):
         self.Fm_nh4 = float(setup['NH4']['Fm_nh4'])
         self.Km_nh4 = float(setup['NH4']['Km_nh4'])
 
+    def f_reaction_pz(self):
+        return 0
+
+    def f_reaction_usz(self, C_nh4_iminus1, k_nit):
+        reaction = -k_nit * C_nh4_iminus1
+        return reaction
+
+    def f_reaction_sz(self):
+        return 0
 
 class Nitrate(Nutrient):
     def __init__(self, m_usz, m_sz, setup_file):
@@ -235,6 +272,22 @@ class Nitrate(Nutrient):
         self.Fm_no3 = float(setup['NO3']['Fm_no3'])
         self.Km_no3 = float(setup['NO3']['Km_no3'])
 
+    def f_reaction_pz(self):
+        return 0
+
+    def f_reaction_usz(self, C_nh4_iminus1, k_nit):
+        reaction = k_nit * C_nh4_iminus1
+        return reaction
+
+    def f_reaction_sz(self, C_no3_iminus1, C_o2_i, C_doc_iminus1, k_denit):
+        #     Of = K_o2/(K_o2+C_o2_i)
+        #     bDOCf = (C_doc_iminus1 + bDOCd*dt)/(C_doc_iminus1 + bDOCd*dt + KbDOC)
+        #
+        #     k2 = k_denit*Of*bDOCf
+        ###testando sem influencia de DOC e O2
+        reaction = -k_denit * C_no3_iminus1
+        return reaction
+
 
 class Oxygen(Nutrient):
     def __init__(self, m_usz, m_sz, setup_file):
@@ -244,6 +297,17 @@ class Oxygen(Nutrient):
         self.D_o2 = float(setup['O2']['D_o2'])
         self.K_o2 = float(setup['O2']['k_inib_o2'])  # perguntar pq K no lugar de k_inib_02
         self.k_o2 = float(setup['O2']['k_o2'])
+        
+    def f_reaction_pz(self):
+        return 0
+    
+    def f_reaction_usz(self, C_o2_iminus1, C_nh4_iminus1, k_nit):
+        reaction = -self.k_o2 * C_o2_iminus1 - k_nit * C_nh4_iminus1 / 2
+        return reaction
+        
+    def f_reaction_sz(self, C_o2_iminus1, C_nh4_iminus1, k_nit):
+        reaction = -self.k_o2 * C_o2_iminus1 - k_nit * C_nh4_iminus1 / 2
+        return reaction
 
 
 class DissolvedOrganicCarbon(Nutrient):
@@ -261,4 +325,16 @@ class DissolvedOrganicCarbon(Nutrient):
         self.kads2_doc = float(setup['DOC']['kads2_doc'])
         self.kdes2_doc = float(setup['DOC']['kdes2_doc'])
         self.k_doc_mb = float(setup['DOC']['k_doc_mb'])
+        
+    def f_reaction_pz(self):
+        return 0
+    
+    def f_reactions_USZ(self, C_doc_iminus1):
+        reaction = -self.k_doc * C_doc_iminus1 + self.bDOCd
+        return reaction
+
+    def f_reactions_SZ(self, C_doc_iminus1):
+        reaction = -self.k_doc * C_doc_iminus1 + self.bDOCd
+        return reaction
+        
 
