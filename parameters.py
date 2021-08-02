@@ -184,6 +184,23 @@ class SoilPlant:
         self.c_o2_root = float(setup['SOIL_PLANT']['c_o2_root'])
         self.ro = (1 - nusz_ini) * self.ro_pd
 
+    def f_plant_uptake_usz(self, concentration, teta_sm, parameter, root_influx=0, michaelis_uptake_constant=0):
+        if parameter == "O2":
+            plant_uptake = -self.root_fraction * (self.lamda * (teta_sm * self.c_o2_root - teta_sm * concentration))
+        else:
+            plant_uptake = -self.root_fraction * (root_influx * teta_sm * concentration / (michaelis_uptake_constant + teta_sm * concentration))
+        return plant_uptake
+
+    def f_plant_uptake_sz(self, concentration, teta_b, parameter, root_influx=0, michaleis_uptake_constant=0):
+        if parameter == "O2":
+            plant_uptake = -self.root_fraction * (self.lamda * (teta_b * self.c_o2_root - teta_b * concentration))
+        else:
+            plant_uptake = -self.root_fraction * (root_influx * teta_b * concentration / (michaleis_uptake_constant + teta_b * concentration))
+        return plant_uptake
+
+
+
+
 
 class Nutrient:
     def __init__(self, m_usz, m_sz):

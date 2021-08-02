@@ -13,48 +13,6 @@ NH4 = parameters.Ammonia(SETUP_FILE)
 NO3 = parameters.Nitrate(SETUP_FILE)
 O2 = parameters.Oxygen(SETUP_FILE)
 DOC = parameters.DissolvedOrganicCarbon(SETUP_FILE)
-
-
-### Ammonia
-#Unsaturated zone
-def fPU_nh4_2(C_nh4_2, teta_sm, root_fraction):
-    PU_nh4_2 = - root_fraction * (Fm_nh4*teta_sm*C_nh4_2/(Km_nh4 + teta_sm*C_nh4_2))
-    
-    return PU_nh4_2
-
-#Saturated zone
-def fPU_nh4_3(C_nh4_3, teta_b, root_fraction):
-    PU_nh4_3 = - root_fraction * (Fm_nh4*teta_b*C_nh4_3/(Km_nh4 + teta_b*C_nh4_3))
-    
-    return PU_nh4_3
-
-### Nitrate
-#Unsaturated zone
-def fPU_no3_2(C_no3_2, teta_sm, root_fraction):
-    PU_no3_2 = -root_fraction * (Fm_no3*teta_sm*C_no3_2/(Km_no3 + teta_sm*C_no3_2))
-    
-    return PU_no3_2
-
-#Saturated zone
-def fPU_no3_3(C_no3_3, teta_b, root_fraction):
-    PU_no3_3 = -root_fraction * (Fm_no3*teta_b*C_no3_3/(Km_no3 + teta_b*C_no3_3))
-    
-    return PU_no3_3
-    
-### Oxygen
-#Unsaturated zone
-def fPU_o2_2(C_o2_2, C_o2_root, teta_sm, root_fraction):
-    PU_o2_2 = -root_fraction * (lamda*(teta_sm*C_o2_root - teta_sm*C_o2_2))
-    
-    return PU_o2_2
-
-#Saturated zone
-def fPU_o2_3(C_o2_3, C_o2_root, teta_b, root_fraction):
-    PU_o2_3 = -root_fraction * (lamda*(teta_b*C_o2_root - teta_b*C_o2_3))
-    
-    return PU_o2_3
-
-
     
 # **4. Model routine**
 def run_Kin():    
@@ -406,9 +364,9 @@ def run_Kin():
                 
                 UF_usz.append(UFi_usz)
                 
-                Rxi_2_o2 = O2.f_reaction_usz(cl_o2, cl_nh4, GENERAL_PARAMETERS.k_nit) + fPU_o2_2(cl_o2, c_o2_root, teta_sm_i, root_fraction)
-                Rxi_2_nh4 = NH4.f_reaction_usz(cl_nh4, GENERAL_PARAMETERS.k_nit) + fPU_nh4_2(cl_nh4, teta_sm_i, root_fraction)
-                Rxi_2_no3 = NO3.f_reaction_usz(cl_nh4, GENERAL_PARAMETERS.k_nit) + fPU_no3_2(cl_no3, teta_sm_i, root_fraction)
+                Rxi_2_o2 = O2.f_reaction_usz(cl_o2, cl_nh4, GENERAL_PARAMETERS.k_nit) + SOIL_PLANT.f_plant_uptake_usz(cl_o2, teta_sm_i, "O2")
+                Rxi_2_nh4 = NH4.f_reaction_usz(cl_nh4, GENERAL_PARAMETERS.k_nit) + SOIL_PLANT.f_plant_uptake_usz(cl_nh4, teta_sm_i, NH4.Fm_nh4, NH4.Km_nh4, "NH4")
+                Rxi_2_no3 = NO3.f_reaction_usz(cl_nh4, GENERAL_PARAMETERS.k_nit) + SOIL_PLANT.f_plant_uptake_usz(cl_no3, teta_sm_i, NO3.Fm_no3, NO3.Km_no3, "NO3")
                 Rxi_2_doc = fR_doc_2(cl_doc)
                 
                 Rxl_o2.append(Rxi_2_o2*(1/teta_sm_iplus1)*dt)
@@ -692,9 +650,9 @@ def run_Kin():
                             
                 UF_sz.append(UFi_sz)
                 
-                Rxi_3_o2 = O2.f_reaction_sz(cj_o2, cj_nh4, GENERAL_PARAMETERS.k_nit) + fPU_o2_3(cj_o2, c_o2_root, teta_b_i, root_fraction)
-                Rxi_3_nh4 = NH4.f_reaction_sz() + fPU_nh4_3(cj_nh4, teta_b_i, root_fraction)
-                Rxi_3_no3 = NO3.f_reaction_sz(cj_no3, cj_o2, cj_doc, GENERAL_PARAMETERS.k_denit) + fPU_no3_3(cj_no3, teta_b_i, root_fraction)
+                Rxi_3_o2 = O2.f_reaction_sz(cj_o2, cj_nh4, GENERAL_PARAMETERS.k_nit) + SOIL_PLANT.f_plant_uptake_sz(cj_o2, teta_b_i, "O2")
+                Rxi_3_nh4 = NH4.f_reaction_sz() + SOIL_PLANT.f_plant_uptake_sz(cj_nh4, teta_b_i, "NH4", NH4.Fm_nh4, NH4.Km_nh4)
+                Rxi_3_no3 = NO3.f_reaction_sz(cj_no3, cj_o2, cj_doc, GENERAL_PARAMETERS.k_denit) + SOIL_PLANT.f_plant_uptake_sz(cj_no3, teta_b_i, "NO3", NO3.Fm_no3, NO3.Km_no3)
                 Rxi_3_doc = DOC.f_reaction_sz(cj_doc)
                 
                 Rxj_o2.append(Rxi_3_o2*(1/teta_b_iplus1)*dt)
