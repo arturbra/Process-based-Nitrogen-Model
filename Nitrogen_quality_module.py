@@ -13,153 +13,10 @@ NH4 = parameters.Ammonia(SETUP_FILE)
 NO3 = parameters.Nitrate(SETUP_FILE)
 O2 = parameters.Oxygen(SETUP_FILE)
 DOC = parameters.DissolvedOrganicCarbon(SETUP_FILE)
-    
+
+
 # **4. Model routine**
-def run_Kin():    
-    #O2
-    cp_o2 = []
-    c_usz_o2 = []
-    cs_usz_o2 = []
-    c_sz_o2 = []
-    cs_sz_o2 = []
-    
-    Rx_usz_o2 = []
-    Rx_sz_o2 = []
-    cp_a_o2 = 0
-    
-    c0_usz_o2 = [0]
-    c0_usz_o2 = c0_usz_o2 * m_usz
-    c_usz_o2.append(c0_usz_o2)
-    cs_usz_o2.append(c0_usz_o2)
-    c0_sz_o2 = [0]
-    c0_sz_o2 = c0_sz_o2 * m_sz
-    c_sz_o2.append(c0_sz_o2)
-    cs_sz_o2.append(c0_sz_o2)
-    Rx_usz_o2.append(c0_usz_o2)
-    Rx_sz_o2.append(c0_sz_o2)
-
-    Mstor_o2_ast_list = []
-    Msoil_o2_acum = []
-    MRx_o2_acum = []         
-    Min_o2_acum = []
-    Mover_o2_acum = []
-    Mpipe_o2_acum = []       
-    Minfsz_o2_acum = []
-    Met_o2_acum = []
-    Mpz_o2_list = []
-    Mstor_o2_mb_list = []    
-    
-    #NH4
-    cp_nh4 = []
-    c_usz_nh4 = []
-    cs_usz_nh4 = []
-    c_sz_nh4 = []
-    cs_sz_nh4 = []
-    
-    Rx_usz_nh4 = []
-    Rx_sz_nh4 = []
-    
-    cp_a_nh4 = 0
-    
-    cs_usz_nh4_a = 0.0
-    cs_sz_nh4_a = 0
-    
-    c0_usz_nh4 = [0]
-    c0_usz_nh4 = c0_usz_nh4 * m_usz
-    cs0_usz_nh4 = [cs_usz_nh4_a]
-    cs0_usz_nh4 = cs0_usz_nh4* m_usz 
-    c_usz_nh4.append(c0_usz_nh4)
-    cs_usz_nh4.append(cs0_usz_nh4)
-    c0_sz_nh4 = [0]
-    c0_sz_nh4 = c0_sz_nh4 * m_sz
-    c_sz_nh4.append(c0_sz_nh4)
-    cs_sz_nh4.append(c0_sz_nh4)
-    Rx_usz_nh4.append(c0_usz_nh4)
-    Rx_sz_nh4.append(c0_sz_nh4)
-
-    Mstor_nh4_ast_list = []
-    Msoil_nh4_acum = []
-    MRx_nh4_acum = []         
-    Min_nh4_acum = []
-    Mover_nh4_acum = []
-    Mpipe_nh4_acum = []       
-    Minfsz_nh4_acum = []
-    Met_nh4_acum = []
-    Mpz_nh4_list = []
-    Mstor_nh4_mb_list = []
-    
-    #NO3
-    cp_no3 = []
-    c_usz_no3 = []
-    cs_usz_no3 = []
-    c_sz_no3 = []
-    cs_sz_no3 = []
-    
-    Rx_usz_no3 = []
-    Rx_sz_no3 = []
-    
-    cp_a_no3 = 0
-    
-    c0_usz_no3 = [0]
-    c0_usz_no3 = c0_usz_no3 * m_usz
-    c_usz_no3.append(c0_usz_no3)
-    cs_usz_no3.append(c0_usz_no3)
-    c0_sz_no3 = [0]
-    c0_sz_no3 = c0_sz_no3 * m_sz
-    c_sz_no3.append(c0_sz_no3)
-    cs_sz_no3.append(c0_sz_no3)
-    Rx_usz_no3.append(c0_usz_no3)
-    Rx_sz_no3.append(c0_sz_no3)
-    
-    Mstor_no3_ast_list = []
-    Msoil_no3_acum = []
-    MRx_no3_acum = []         
-    Min_no3_acum = []
-    Mover_no3_acum = []
-    Mpipe_no3_acum = []       
-    Minfsz_no3_acum = []
-    Met_no3_acum = []
-    Mpz_no3_list = []
-    Mstor_no3_mb_list = []
-    
-    #DOC
-    cp_doc = []
-    c_usz_doc = []
-    cs_usz_doc = []
-    c_sz_doc = []
-    cs_sz_doc = []
-    
-    Rx_usz_doc = []
-    Rx_sz_doc = []
-    
-    cp_a_doc = 0
-    
-    c0_usz_doc = [0]
-    c0_usz_doc = c0_usz_doc * m_usz
-    c_usz_doc.append(c0_usz_doc)
-    cs_usz_doc.append(c0_usz_doc)
-    c0_sz_doc = [0]
-    c0_sz_doc = c0_sz_doc * m_sz
-    c_sz_doc.append(c0_sz_doc)
-    cs_sz_doc.append(c0_sz_doc)
-    Rx_usz_doc.append(c0_usz_doc)
-    Rx_sz_doc.append(c0_sz_doc)
-    
-    cs_usz_doc_a = 0
-    cs_sz_doc_a = 0
-    
-    Mstor_doc_ast_list = []
-    Msoil_doc_acum = []
-    MRx_doc_acum = []         
-    Min_doc_acum = []
-    Mover_doc_acum = []
-    Mpipe_doc_acum = []       
-    Minfsz_doc_acum = []
-    Met_doc_acum = []
-    Mpz_doc_list = []
-    Mstor_doc_mb_list = []
-    
-    
+def run_Kin():
     for t in range(len(indice)-1):
         #Ponding zone
         cin_o2 = cin_o2_list[t]
@@ -216,11 +73,11 @@ def run_Kin():
             cpi_doc = 0
        
         else:        
-            cpi_o2 = PZ.f_concentration(cin_o2, Qin_p, cp_a_o2, I1, Qv, Rxi_p_o2, hp, hp_a)
-            cpi_nh4 = PZ.f_concentration(cin_nh4, Qin_p, cp_a_nh4, I1, Qv, Rxi_p_nh4, hp, hp_a)
-            cpi_no3 = PZ.f_concentration(cin_no3, Qin_p, cp_a_no3, I1, Qv, Rxi_p_no3, hp, hp_a)
-            cpi_doc = PZ.f_concentration(cin_doc, Qin_p, cp_a_doc, I1, Qv, Rxi_p_doc, hp, hp_a)
-#             print('cin_nh4, Qin_p, cp_a_nh4, I1, Qv, Rxi_p_nh4, hp, hp_a: ', cin_nh4, Qin_p, cp_a_nh4, I1, Qv, Rxi_p_nh4, hp, hp_a)
+            cpi_o2 = PZ.f_concentration(cin_o2, Qin_p, O2.cp_a, I1, Qv, Rxi_p_o2, hp, hp_a)
+            cpi_nh4 = PZ.f_concentration(cin_nh4, Qin_p, NH4.cp_a, I1, Qv, Rxi_p_nh4, hp, hp_a)
+            cpi_no3 = PZ.f_concentration(cin_no3, Qin_p, NO3.cp_a, I1, Qv, Rxi_p_no3, hp, hp_a)
+            cpi_doc = PZ.f_concentration(cin_doc, Qin_p, DOC.cp_a, I1, Qv, Rxi_p_doc, hp, hp_a)
+#             print('cin_nh4, Qin_p, NH4.cp_a, I1, Qv, Rxi_p_nh4, hp, hp_a: ', cin_nh4, Qin_p, NH4.cp_a, I1, Qv, Rxi_p_nh4, hp, hp_a)
 #             print('cpi_nh4: ', cpi_nh4)
         
         
@@ -241,33 +98,33 @@ def run_Kin():
         else:
             cpi_doc = cpi_doc       
             
-        cp_o2.append(cpi_o2)
-        cp_a_o2 = cp_o2[-1]
+        O2.cp.append(cpi_o2)
+        O2.cp_a = O2.cp[-1]
     
-        cp_nh4.append(cpi_nh4)
-        cp_a_nh4 = cp_nh4[-1]
+        NH4.cp.append(cpi_nh4)
+        NH4.cp_a = NH4.cp[-1]
     
-        cp_no3.append(cpi_no3)
-        cp_a_no3 = cp_no3[-1]
+        NO3.cp.append(cpi_no3)
+        NO3.cp_a = NO3.cp[-1]
     
-        cp_doc.append(cpi_doc)
-        cp_a_doc = cp_doc[-1]
+        DOC.cp.append(cpi_doc)
+        DOC.cp_a = DOC.cp[-1]
         
         #USZ
-        cli_o2_list = c_usz_o2[t].copy()
+        cli_o2_list = O2.c_usz[t].copy()
         #print('1_o2', cli_o2_list)
-        cli_nh4_list = c_usz_nh4[t].copy()   
+        cli_nh4_list = NH4.c_usz[t].copy()
         #print('1_nh4', cli_nh4_list)
-        cli_no3_list = c_usz_no3[t].copy()
-        cli_doc_list = c_usz_doc[t].copy()
+        cli_no3_list = NO3.c_usz[t].copy()
+        cli_doc_list = DOC.c_usz[t].copy()
         
         #SZ
         if hpipe > 0:
-            cji_o2_list = c_sz_o2[t].copy() #copiar lista
-            #cji_o2_list = c_sz_o2[t][:] #outro jeito de copiar a lista
-            cji_nh4_list = c_sz_nh4[t].copy()
-            cji_no3_list = c_sz_no3[t].copy()
-            cji_doc_list = c_sz_doc[t].copy()
+            cji_o2_list = O2.c_sz[t].copy() #copiar lista
+            #cji_o2_list = O2.c_sz[t][:] #outro jeito de copiar a lista
+            cji_nh4_list = NH4.c_sz[t].copy()
+            cji_no3_list = NO3.c_sz[t].copy()
+            cji_doc_list = DOC.c_sz[t].copy()
             
         if m_usz != 0:
     
@@ -324,23 +181,23 @@ def run_Kin():
                             
                 cs_o2 = 0
                 
-                #since we have added an initial value of cs = 0 in the cs_usz_nh4 list, when calling the index equal = 't' we are actually calling the value corresponding to t-1 
-                cs_nh4 = cs_usz_nh4[t][l]
+                #since we have added an initial value of cs = 0 in the NH4.cs_usz list, when calling the index equal = 't' we are actually calling the value corresponding to t-1
+                cs_nh4 = NH4.cs_usz[t][l]
                 cs_nh4_iplus1 = NH4.f_concentration_soil(cs_nh4, teta_sm_i, kads_nh4, cl_nh4, kdes_nh4, SOIL_PLANT.ro, GENERAL_PARAMETERS.dt, k_micro=k_nh4_mb)
                 if cs_nh4_iplus1 < 0.00000000000001:
                     cs_nh4_iplus1 = 0
                     
 #                 sor = (teta_sm_i/ro)*kads_nh4*cl_nh4*dt
-#                 des =  kdes_nh4*cs_usz_nh4_a*dt
+#                 des =  kdes_nh4*NH4.cs_usz_a*dt
                 
-#                 print('t: ', t, ', l: ', l , ', cs_nh4_a: ', cs_usz_nh4_a, 'teta_sm_i: ', teta_sm_i, 'kads_nh4: ', kads_nh4, 'cl_nh4: ', cl_nh4, 'kdes_nh4: ', kdes_nh4, 'k_nh4_mb: ', k_nh4_mb)
+#                 print('t: ', t, ', l: ', l , ', cs_nh4_a: ', NH4.cs_usz_a, 'teta_sm_i: ', teta_sm_i, 'kads_nh4: ', kads_nh4, 'cl_nh4: ', cl_nh4, 'kdes_nh4: ', kdes_nh4, 'k_nh4_mb: ', k_nh4_mb)
 #                 print('cs_nh4: ', cs_nh4)
 #                 input()
                 
 #                 logger.debug(f' t: {t} \t l: {l} \t sor: {sor} \t des: {des} \t cs_nh4: {cs_nh4}')
 #                 logger.debug('----SOIL----')
-#                 logger.debug('cs_nh4_a: ', cs_usz_nh4_a)
-#                 logger.debug('cs_nh4_a: ', cs_usz_nh4_a, 'teta_sm_i: ', teta_sm_i, 'kads_nh4: ', kads_nh4, 'cl_nh4: ', cl_nh4, 'kdes_nh4: ', kdes_nh4, 'k_nh4_mb: ', k_nh4_mb)
+#                 logger.debug('cs_nh4_a: ', NH4.cs_usz_a)
+#                 logger.debug('cs_nh4_a: ', NH4.cs_usz_a, 'teta_sm_i: ', teta_sm_i, 'kads_nh4: ', kads_nh4, 'cl_nh4: ', cl_nh4, 'kdes_nh4: ', kdes_nh4, 'k_nh4_mb: ', k_nh4_mb)
 #                 logger.debug('cs_nh4: ', cs_nh4)
 #                 logger.debug('----WATER----')
                 csi_usz_nh4.append(cs_nh4_iplus1)
@@ -348,8 +205,8 @@ def run_Kin():
                 
                 cs_no3 = 0
     
-                cs_usz_doc_a = cs_usz_doc[t][l]
-                cs_doc = DOC.f_concentration_soil(cs_usz_doc_a, teta_sm_i, kads_doc, cl_doc, kdes_doc, SOIL_PLANT.ro, GENERAL_PARAMETERS.dt, kmicro=k_doc_mb)
+                DOC.cs_usz_a = DOC.cs_usz[t][l]
+                cs_doc = DOC.f_concentration_soil(DOC.cs_usz_a, teta_sm_i, kads_doc, cl_doc, kdes_doc, SOIL_PLANT.ro, GENERAL_PARAMETERS.dt, kmicro=k_doc_mb)
                 csi_usz_doc.append(cs_doc)
                 if cs_doc < 0.00000000000001:
                     cs_doc = 0                
@@ -381,7 +238,7 @@ def run_Kin():
 #                 print('t: ', t, ', l: ', l, ', Rx: ', Rxi_2_nh4*(dt/teta_sm_i))
 #                 input()
                 #if t < 20:
-                    #print('t: ', t, 'l: ', l, 'Rx_usz_o2: ', Rxi_2_o2, 'Rx_usz_nh4: ', Rxi_2_nh4, 'Rx_usz_no3: ', Rxi_2_no3)   
+                    #print('t: ', t, 'l: ', l, 'O2.Rx_usz: ', Rxi_2_o2, 'NH4.Rx_usz: ', Rxi_2_nh4, 'NO3.Rx_usz: ', Rxi_2_no3)
                 
     
     ### Oxygen
@@ -623,22 +480,22 @@ def run_Kin():
                 
                 cs_o2 = 0
                 
-                cs_sz_nh4_a = cs_sz_nh4[t][j]
-                cs_nh4 = NH4.f_concentration_soil(cs_sz_nh4_a, teta_b_i, kads2_nh4, cj_nh4, kdes2_nh4, SOIL_PLANT.ro, GENERAL_PARAMETERS.dt, kmicro=k_nh4_mb)
+                NH4.cs_sz_a = NH4.cs_sz[t][j]
+                cs_nh4 = NH4.f_concentration_soil(NH4.cs_sz_a, teta_b_i, kads2_nh4, cj_nh4, kdes2_nh4, SOIL_PLANT.ro, GENERAL_PARAMETERS.dt, kmicro=k_nh4_mb)
                 csi_sz_nh4.append(cs_nh4)
                 if cs_nh4 < 0.00000000000001:
                     cs_nh4 = 0
                 
 #                 print('====>> t: ', t, ', j: ', j)
 #                 print('---- SOIL ----')
-#                 print('cs_nh4_a: ', cs_sz_nh4_a, 'teta_b_i: ', teta_b_i, 'kads_nh4: ', kads_nh4, 'cj_nh4: ', cj_nh4, 'kdes_nh4: ', kdes_nh4, 'k_nh4_mb: ', k_nh4_mb)
+#                 print('cs_nh4_a: ', NH4.cs_sz_a, 'teta_b_i: ', teta_b_i, 'kads_nh4: ', kads_nh4, 'cj_nh4: ', cj_nh4, 'kdes_nh4: ', kdes_nh4, 'k_nh4_mb: ', k_nh4_mb)
 #                 print('cs_nh4: ', cs_nh4)
 #                 print('---- WATER ----')
 #                 print('cmminus1_nh4: ', cmminus1_nh4)                
                 cs_no3 = 0
     
-                cs_sz_doc_a = cs_sz_doc[t][j]
-                cs_doc = DOC.f_concentration_soil(cs_sz_doc_a, teta_b_i, kads2_doc, cj_doc, kdes2_doc, kmicro=k_doc_mb)
+                DOC.cs_sz_a = DOC.cs_sz[t][j]
+                cs_doc = DOC.f_concentration_soil(DOC.cs_sz_a, teta_b_i, kads2_doc, cj_doc, kdes2_doc, kmicro=k_doc_mb)
                 csi_sz_doc.append(cs_doc)
                                             
                 UF_sz = []                                 
@@ -660,7 +517,7 @@ def run_Kin():
                 Rxj_no3.append(Rxi_3_no3*(1/teta_b_iplus1)*dt)
                 Rxj_doc.append(Rxi_3_doc*(1/teta_b_iplus1)*dt)
                 #if t < 20:
-                    #print('t: ', t, 'j: ', j, 'Rx_sz_o2: ', Rxi_3_o2, 'Rx_sz_nh4: ', Rxi_3_nh4, 'Rx_sz_no3: ', Rxi_3_no3)   
+                    #print('t: ', t, 'j: ', j, 'O2.Rx_sz: ', Rxi_3_o2, 'NH4.Rx_sz: ', Rxi_3_nh4, 'NO3.Rx_sz: ', Rxi_3_no3)
                 
     ### Oxygen                       
                 Pesz_o2 = SZ.f_peclet(UFi_sz, D_o2, dz)
@@ -975,56 +832,56 @@ def run_Kin():
         
         if hpipe > 0:
             ### Oxygen
-            Mstor_o2_ast = sum(c_usz_o2[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz + sum(c_sz_o2[t])*Ab*tteta_sz[t]*thsz[t]*1000/m_sz
-            Mstor_o2_ast_list.append(Mstor_o2_ast)
+            Mstor_o2_ast = sum(O2.c_usz[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz + sum(O2.c_sz[t])*Ab*tteta_sz[t]*thsz[t]*1000/m_sz
+            O2.Mstor_ast_list.append(Mstor_o2_ast)
             
             Msoil_o2_a = 0
             Msoil_o2 = 0
-            Msoil_o2_acum.append(0)
+            O2.Msoil_acum.append(0)
             
-            MRx_o2 = - (sum(Rx_usz_o2[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz + sum(Rx_sz_o2[t])*Ab*tteta_sz[t]*thsz[t]*1000/m_sz)
+            MRx_o2 = - (sum(O2.Rx_usz[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz + sum(O2.Rx_sz[t])*Ab*tteta_sz[t]*thsz[t]*1000/m_sz)
             if t == 0:
-                MRx_o2_acum.append(MRx_o2)
+                O2.MRx_acum.append(MRx_o2)
             else:
-                MRx_o2_acum.append(MRx_o2 + MRx_o2_acum[-1])
+                O2.MRx_acum.append(MRx_o2 + O2.MRx_acum[-1])
     
     
             Min_o2 = tQin[t]*cin_o2_list[t]*dt*1000
             if t == 0:
-                Min_o2_acum.append(Min_o2)
+                O2.Min_acum.append(Min_o2)
             else:
-                Min_o2_acum.append(Min_o2 + Min_o2_acum[-1])
+                O2.Min_acum.append(Min_o2 + O2.Min_acum[-1])
     
-            Mover_o2 = tQover[t]*cp_o2[t]*dt*1000
+            Mover_o2 = tQover[t]*O2.cp[t]*dt*1000
             if t == 0:
-                Mover_o2_acum.append(Mover_o2)
+                O2.Mover_acum.append(Mover_o2)
             else:
-                Mover_o2_acum.append(Mover_o2 + Mover_o2_acum[-1])
+                O2.Mover_acum.append(Mover_o2 + O2.Mover_acum[-1])
              
-            Mpipe_o2 = tQpipe[t]*c_sz_o2[t][m_sz-1]*dt*1000 
+            Mpipe_o2 = tQpipe[t]*O2.c_sz[t][m_sz-1]*dt*1000
             if t == 0:
-                Mpipe_o2_acum.append(Mpipe_o2)
+                O2.Mpipe_acum.append(Mpipe_o2)
             else:
-                Mpipe_o2_acum.append(Mpipe_o2 + Mpipe_o2_acum[-1])
+                O2.Mpipe_acum.append(Mpipe_o2 + O2.Mpipe_acum[-1])
              
-            Minfsz_o2 = tQinfsz[t]*c_sz_o2[t][m_sz-1]*dt*1000 
+            Minfsz_o2 = tQinfsz[t]*O2.c_sz[t][m_sz-1]*dt*1000
             if t == 0:
-                Minfsz_o2_acum.append(Minfsz_o2)
+                O2.Minfsz_acum.append(Minfsz_o2)
             else:
-                Minfsz_o2_acum.append(Minfsz_o2 + Minfsz_o2_acum[-1])
+                O2.Minfsz_acum.append(Minfsz_o2 + O2.Minfsz_acum[-1])
              
             Met_o2 = tQet[t]*cl_i1_o2[0]*dt*1000
             if t == 0:
-                Met_o2_acum.append(Met_o2)
+                O2.Met_acum.append(Met_o2)
             else:
-                Met_o2_acum.append(Met_o2 + Met_o2_acum[-1])
+                O2.Met_acum.append(Met_o2 + O2.Met_acum[-1])
              
-            Mpz_o2 = thpEND[t]*Ab*1000*cp_o2[t]
-            Mpz_o2_list.append(Mpz_o2)
+            Mpz_o2 = thpEND[t]*Ab*1000*O2.cp[t]
+            O2.Mpz_list.append(Mpz_o2)
              
         
-            Mstor_o2_mb = Min_o2_acum[-1] - Mpz_o2_list[-1] - Mover_o2_acum[-1] - Mpipe_o2_acum[-1] - Minfsz_o2_acum[-1] - Met_o2_acum[-1] - Msoil_o2_acum[-1] - MRx_o2_acum[-1]
-            Mstor_o2_mb_list.append(Mstor_o2_mb)        
+            Mstor_o2_mb = O2.Min_acum[-1] - O2.Mpz_list[-1] - O2.Mover_acum[-1] - O2.Mpipe_acum[-1] - O2.Minfsz_acum[-1] - O2.Met_acum[-1] - O2.Msoil_acum[-1] - O2.MRx_acum[-1]
+            O2.Mstor_mb_list.append(Mstor_o2_mb)
             
             delta_ast_o2_usz = (Mstor_o2_mb - Mstor_o2_ast)/(Ab*tteta_usz[t]*thusz[t]*1000/m_usz)
             cl_i1_o2[1] = cl_i1_o2[1] + delta_ast_o2_usz
@@ -1035,57 +892,57 @@ def run_Kin():
                    
             ### Amonia
             
-            Mstor_nh4_ast = sum(c_usz_nh4[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz + sum(c_sz_nh4[t])*Ab*tteta_sz[t]*thsz[t]*1000/m_sz
-            Mstor_nh4_ast_list.append(Mstor_nh4_ast)
+            Mstor_nh4_ast = sum(NH4.c_usz[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz + sum(NH4.c_sz[t])*Ab*tteta_sz[t]*thsz[t]*1000/m_sz
+            NH4.Mstor_ast_list.append(Mstor_nh4_ast)
             
-            Msoil_nh4_a = cs_usz_nh4_a*ro*Ab*thusz[t]*1000 + cs_sz_nh4_a*ro*Ab*thsz[t]*1000
-            Msoil_nh4 = sum(cs_usz_nh4[t])*ro*Ab*thusz[t]*1000/m_usz + sum(cs_sz_nh4[t])*ro*Ab*thsz[t]*1000/m_sz
-            Msoil_nh4_acum.append(Msoil_nh4 - Msoil_nh4_a)
+            Msoil_nh4_a = NH4.cs_usz_a*ro*Ab*thusz[t]*1000 + NH4.cs_sz_a*ro*Ab*thsz[t]*1000
+            Msoil_nh4 = sum(NH4.cs_usz[t])*ro*Ab*thusz[t]*1000/m_usz + sum(NH4.cs_sz[t])*ro*Ab*thsz[t]*1000/m_sz
+            NH4.Msoil_acum.append(Msoil_nh4 - Msoil_nh4_a)
             
        
-            MRx_nh4 = - (sum(Rx_usz_nh4[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz + sum(Rx_sz_nh4[t])*Ab*tteta_sz[t]*thsz[t]*1000/m_sz)
+            MRx_nh4 = - (sum(NH4.Rx_usz[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz + sum(NH4.Rx_sz[t])*Ab*tteta_sz[t]*thsz[t]*1000/m_sz)
             if t == 0:
-                MRx_nh4_acum.append(MRx_nh4)
+                NH4.MRx_acum.append(MRx_nh4)
             else:
-                MRx_nh4_acum.append(MRx_nh4 + MRx_nh4_acum[-1])
+                NH4.MRx_acum.append(MRx_nh4 + NH4.MRx_acum[-1])
     
     
             Min_nh4 = tQin[t]*cin_nh4_list[t]*dt*1000
             if t == 0:
-                Min_nh4_acum.append(Min_nh4)
+                NH4.Min_acum.append(Min_nh4)
             else:
-                Min_nh4_acum.append(Min_nh4 + Min_nh4_acum[-1])
+                NH4.Min_acum.append(Min_nh4 + NH4.Min_acum[-1])
     
-            Mover_nh4 = tQover[t]*cp_nh4[t]*dt*1000
+            Mover_nh4 = tQover[t]*NH4.cp[t]*dt*1000
             if t == 0:
-                Mover_nh4_acum.append(Mover_nh4)
+                NH4.Mover_acum.append(Mover_nh4)
             else:
-                Mover_nh4_acum.append(Mover_nh4 + Mover_nh4_acum[-1])
+                NH4.Mover_acum.append(Mover_nh4 + NH4.Mover_acum[-1])
              
-            Mpipe_nh4 = tQpipe[t]*c_sz_nh4[t][m_sz-1]*dt*1000 
+            Mpipe_nh4 = tQpipe[t]*NH4.c_sz[t][m_sz-1]*dt*1000
             if t == 0:
-                Mpipe_nh4_acum.append(Mpipe_nh4)
+                NH4.Mpipe_acum.append(Mpipe_nh4)
             else:
-                Mpipe_nh4_acum.append(Mpipe_nh4 + Mpipe_nh4_acum[-1])
+                NH4.Mpipe_acum.append(Mpipe_nh4 + NH4.Mpipe_acum[-1])
              
-            Minfsz_nh4 = tQinfsz[t]*c_sz_nh4[t][m_sz-1]*dt*1000 
+            Minfsz_nh4 = tQinfsz[t]*NH4.c_sz[t][m_sz-1]*dt*1000
             if t == 0:
-                Minfsz_nh4_acum.append(Minfsz_nh4)
+                NH4.Minfsz_acum.append(Minfsz_nh4)
             else:
-                Minfsz_nh4_acum.append(Minfsz_nh4 + Minfsz_nh4_acum[-1])
+                NH4.Minfsz_acum.append(Minfsz_nh4 + NH4.Minfsz_acum[-1])
              
             Met_nh4 = tQet[t]*cl_i1_nh4[0]*dt*1000
             if t == 0:
-                Met_nh4_acum.append(Met_nh4)
+                NH4.Met_acum.append(Met_nh4)
             else:
-                Met_nh4_acum.append(Met_nh4 + Met_nh4_acum[-1])
+                NH4.Met_acum.append(Met_nh4 + NH4.Met_acum[-1])
              
-            Mpz_nh4 = thpEND[t]*Ab*1000*cp_nh4[t]
-            Mpz_nh4_list.append(Mpz_nh4)
+            Mpz_nh4 = thpEND[t]*Ab*1000*NH4.cp[t]
+            NH4.Mpz_list.append(Mpz_nh4)
              
         
-            Mstor_nh4_mb = Min_nh4_acum[-1] - Mpz_nh4_list[-1] - Mover_nh4_acum[-1] - Mpipe_nh4_acum[-1] - Minfsz_nh4_acum[-1] - Met_nh4_acum[-1] - Msoil_nh4_acum[-1] - MRx_nh4_acum[-1]
-            Mstor_nh4_mb_list.append(Mstor_nh4_mb)        
+            Mstor_nh4_mb = NH4.Min_acum[-1] - NH4.Mpz_list[-1] - NH4.Mover_acum[-1] - NH4.Mpipe_acum[-1] - NH4.Minfsz_acum[-1] - NH4.Met_acum[-1] - NH4.Msoil_acum[-1] - NH4.MRx_acum[-1]
+            NH4.Mstor_mb_list.append(Mstor_nh4_mb)
              
     
     #         delta_ast_nh4_usz = 0
@@ -1100,14 +957,14 @@ def run_Kin():
                 cl_i1_nh4[1] = cl_i1_nh4[1]
             else:
                 cl_i1_nh4[1] = 0
-    #         sum_cusz_nh4 = sum(c_usz_nh4[t])
-    #         sum_csz_nh4 = sum(c_sz_nh4[t])        
+    #         sum_cusz_nh4 = sum(NH4.c_usz[t])
+    #         sum_csz_nh4 = sum(NH4.c_sz[t])
     #         print('t: ', t, 'Mstor_trace: ', Mstor_trace, ', Mstor_mb: ', Mstor_mb, ', dif: ', (Mstor_mb - Mstor_trace))  
     #         print('t: ', t, ', delta_usz: ', delta_trace_nh4_usz, ', delta_sz: ', delta_trace_nh4_sz)
     #         print('teta_sm: ', tteta_usz[t], ', husz: ', thusz[t], ', teta_b: ', tteta_sz[t], ', hsz: ', thsz[t])
     #         print('sum_cusz_nh4: ', sum_cusz_nh4, ', sum_csz_nh4: ', sum_csz_nh4)             
     #         print('Qin: ', tQin[t], ',hpEND_i: ', thpEND[t], ', hpEND_i-1: ', thpEND[t-1], ',Qpipe: ', tQpipe[t], ', Qover: ', tQover[t], ', Qinfsz: ', tQinfsz[t], ', Qet: ', tQet[t])
-    #         print('Cin: ', cin_nh4_list[t], ', Cp_i: ', cp_nh4[t], ', Cp_i-1: ', cp_nh4[t-1], ', Csz_ultimo: ', c_pipe)
+    #         print('Cin: ', cin_nh4_list[t], ', Cp_i: ', NH4.cp[t], ', Cp_i-1: ', NH4.cp[t-1], ', Csz_ultimo: ', c_pipe)
     #         input()
     #                      
     #         for l in range(m_usz):
@@ -1117,57 +974,57 @@ def run_Kin():
         
             ### Nitrate
             
-            Mstor_no3_ast = sum(c_usz_no3[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz + sum(c_sz_no3[t])*Ab*tteta_sz[t]*thsz[t]*1000/m_sz
-            Mstor_no3_ast_list.append(Mstor_no3_ast)
+            Mstor_no3_ast = sum(NO3.c_usz[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz + sum(NO3.c_sz[t])*Ab*tteta_sz[t]*thsz[t]*1000/m_sz
+            NO3.Mstor_ast_list.append(Mstor_no3_ast)
             
             Msoil_no3_a = 0
             Msoil_no3 = 0
-            Msoil_no3_acum.append(0)
+            NO3.Msoil_acum.append(0)
             
        
-            MRx_no3 = - (sum(Rx_usz_no3[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz + sum(Rx_sz_no3[t])*Ab*tteta_sz[t]*thsz[t]*1000/m_sz)
+            MRx_no3 = - (sum(NO3.Rx_usz[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz + sum(NO3.Rx_sz[t])*Ab*tteta_sz[t]*thsz[t]*1000/m_sz)
             if t == 0:
-                MRx_no3_acum.append(MRx_no3)
+                NO3.MRx_acum.append(MRx_no3)
             else:
-                MRx_no3_acum.append(MRx_no3 + MRx_no3_acum[-1])
+                NO3.MRx_acum.append(MRx_no3 + NO3.MRx_acum[-1])
     
     
             Min_no3 = tQin[t]*cin_no3_list[t]*dt*1000
             if t == 0:
-                Min_no3_acum.append(Min_no3)
+                NO3.Min_acum.append(Min_no3)
             else:
-                Min_no3_acum.append(Min_no3 + Min_no3_acum[-1])
+                NO3.Min_acum.append(Min_no3 + NO3.Min_acum[-1])
     
-            Mover_no3 = tQover[t]*cp_no3[t]*dt*1000
+            Mover_no3 = tQover[t]*NO3.cp[t]*dt*1000
             if t == 0:
-                Mover_no3_acum.append(Mover_no3)
+                NO3.Mover_acum.append(Mover_no3)
             else:
-                Mover_no3_acum.append(Mover_no3 + Mover_no3_acum[-1])
+                NO3.Mover_acum.append(Mover_no3 + NO3.Mover_acum[-1])
              
-            Mpipe_no3 = tQpipe[t]*c_sz_no3[t][m_sz-1]*dt*1000 
+            Mpipe_no3 = tQpipe[t]*NO3.c_sz[t][m_sz-1]*dt*1000
             if t == 0:
-                Mpipe_no3_acum.append(Mpipe_no3)
+                NO3.Mpipe_acum.append(Mpipe_no3)
             else:
-                Mpipe_no3_acum.append(Mpipe_no3 + Mpipe_no3_acum[-1])
+                NO3.Mpipe_acum.append(Mpipe_no3 + NO3.Mpipe_acum[-1])
              
-            Minfsz_no3 = tQinfsz[t]*c_sz_no3[t][m_sz-1]*dt*1000 
+            Minfsz_no3 = tQinfsz[t]*NO3.c_sz[t][m_sz-1]*dt*1000
             if t == 0:
-                Minfsz_no3_acum.append(Minfsz_no3)
+                NO3.Minfsz_acum.append(Minfsz_no3)
             else:
-                Minfsz_no3_acum.append(Minfsz_no3 + Minfsz_no3_acum[-1])
+                NO3.Minfsz_acum.append(Minfsz_no3 + NO3.Minfsz_acum[-1])
              
             Met_no3 = tQet[t]*cl_i1_no3[0]*dt*1000
             if t == 0:
-                Met_no3_acum.append(Met_no3)
+                NO3.Met_acum.append(Met_no3)
             else:
-                Met_no3_acum.append(Met_no3 + Met_no3_acum[-1])
+                NO3.Met_acum.append(Met_no3 + NO3.Met_acum[-1])
              
-            Mpz_no3 = thpEND[t]*Ab*1000*cp_no3[t]
-            Mpz_no3_list.append(Mpz_no3)
+            Mpz_no3 = thpEND[t]*Ab*1000*NO3.cp[t]
+            NO3.Mpz_list.append(Mpz_no3)
              
         
-            Mstor_no3_mb = Min_no3_acum[-1] - Mpz_no3_list[-1] - Mover_no3_acum[-1] - Mpipe_no3_acum[-1] - Minfsz_no3_acum[-1] - Met_no3_acum[-1] - Msoil_no3_acum[-1] - MRx_no3_acum[-1]
-            Mstor_no3_mb_list.append(Mstor_no3_mb)        
+            Mstor_no3_mb = NO3.Min_acum[-1] - NO3.Mpz_list[-1] - NO3.Mover_acum[-1] - NO3.Mpipe_acum[-1] - NO3.Minfsz_acum[-1] - NO3.Met_acum[-1] - NO3.Msoil_acum[-1] - NO3.MRx_acum[-1]
+            NO3.Mstor_mb_list.append(Mstor_no3_mb)
             
             delta_ast_no3_usz = (Mstor_no3_mb - Mstor_no3_ast)/(Ab*tteta_usz[t]*thusz[t]*1000/m_usz)
             cl_i1_no3[1] = cl_i1_no3[1] + delta_ast_no3_usz
@@ -1178,57 +1035,57 @@ def run_Kin():
             
             ### DOC
             
-            Mstor_doc_ast = sum(c_usz_doc[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz + sum(c_sz_doc[t])*Ab*tteta_sz[t]*thsz[t]*1000/m_sz
-            Mstor_doc_ast_list.append(Mstor_doc_ast)
+            Mstor_doc_ast = sum(DOC.c_usz[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz + sum(DOC.c_sz[t])*Ab*tteta_sz[t]*thsz[t]*1000/m_sz
+            DOC.Mstor_ast_list.append(Mstor_doc_ast)
             
-            Msoil_doc_a = cs_usz_doc_a*ro*Ab*thusz[t]*1000 + cs_sz_doc_a*ro*Ab*thsz[t]*1000
-            Msoil_doc = sum(cs_usz_doc[t])*ro*Ab*thusz[t]*1000/m_usz + sum(cs_sz_doc[t])*ro*Ab*thsz[t]*1000/m_sz
-            Msoil_doc_acum.append(Msoil_doc - Msoil_doc_a)
+            Msoil_doc_a = DOC.cs_usz_a*ro*Ab*thusz[t]*1000 + DOC.cs_sz_a*ro*Ab*thsz[t]*1000
+            Msoil_doc = sum(DOC.cs_usz[t])*ro*Ab*thusz[t]*1000/m_usz + sum(DOC.cs_sz[t])*ro*Ab*thsz[t]*1000/m_sz
+            DOC.Msoil_acum.append(Msoil_doc - Msoil_doc_a)
             
        
-            MRx_doc = - (sum(Rx_usz_doc[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz + sum(Rx_sz_doc[t])*Ab*tteta_sz[t]*thsz[t]*1000/m_sz)
+            MRx_doc = - (sum(DOC.Rx_usz[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz + sum(DOC.Rx_sz[t])*Ab*tteta_sz[t]*thsz[t]*1000/m_sz)
             if t == 0:
-                MRx_doc_acum.append(MRx_doc)
+                DOC.MRx_acum.append(MRx_doc)
             else:
-                MRx_doc_acum.append(MRx_doc + MRx_doc_acum[-1])
+                DOC.MRx_acum.append(MRx_doc + DOC.MRx_acum[-1])
     
     
             Min_doc = tQin[t]*cin_doc_list[t]*dt*1000
             if t == 0:
-                Min_doc_acum.append(Min_doc)
+                DOC.Min_acum.append(Min_doc)
             else:
-                Min_doc_acum.append(Min_doc + Min_doc_acum[-1])
+                DOC.Min_acum.append(Min_doc + DOC.Min_acum[-1])
     
-            Mover_doc = tQover[t]*cp_doc[t]*dt*1000
+            Mover_doc = tQover[t]*DOC.cp[t]*dt*1000
             if t == 0:
-                Mover_doc_acum.append(Mover_doc)
+                DOC.Mover_acum.append(Mover_doc)
             else:
-                Mover_doc_acum.append(Mover_doc + Mover_doc_acum[-1])
+                DOC.Mover_acum.append(Mover_doc + DOC.Mover_acum[-1])
              
-            Mpipe_doc = tQpipe[t]*c_sz_doc[t][m_sz-1]*dt*1000 
+            Mpipe_doc = tQpipe[t]*DOC.c_sz[t][m_sz-1]*dt*1000
             if t == 0:
-                Mpipe_doc_acum.append(Mpipe_doc)
+                DOC.Mpipe_acum.append(Mpipe_doc)
             else:
-                Mpipe_doc_acum.append(Mpipe_doc + Mpipe_doc_acum[-1])
+                DOC.Mpipe_acum.append(Mpipe_doc + DOC.Mpipe_acum[-1])
              
-            Minfsz_doc = tQinfsz[t]*c_sz_doc[t][m_sz-1]*dt*1000 
+            Minfsz_doc = tQinfsz[t]*DOC.c_sz[t][m_sz-1]*dt*1000
             if t == 0:
-                Minfsz_doc_acum.append(Minfsz_doc)
+                DOC.Minfsz_acum.append(Minfsz_doc)
             else:
-                Minfsz_doc_acum.append(Minfsz_doc + Minfsz_doc_acum[-1])
+                DOC.Minfsz_acum.append(Minfsz_doc + DOC.Minfsz_acum[-1])
              
             Met_doc = tQet[t]*cl_i1_doc[0]*dt*1000
             if t == 0:
-                Met_doc_acum.append(Met_doc)
+                DOC.Met_acum.append(Met_doc)
             else:
-                Met_doc_acum.append(Met_doc + Met_doc_acum[-1])
+                DOC.Met_acum.append(Met_doc + DOC.Met_acum[-1])
              
-            Mpz_doc = thpEND[t]*Ab*1000*cp_doc[t]
-            Mpz_doc_list.append(Mpz_doc)
+            Mpz_doc = thpEND[t]*Ab*1000*DOC.cp[t]
+            DOC.Mpz_list.append(Mpz_doc)
              
         
-            Mstor_doc_mb = Min_doc_acum[-1] - Mpz_doc_list[-1] - Mover_doc_acum[-1] - Mpipe_doc_acum[-1] - Minfsz_doc_acum[-1] - Met_doc_acum[-1] - Msoil_doc_acum[-1] - MRx_doc_acum[-1]
-            Mstor_doc_mb_list.append(Mstor_doc_mb)        
+            Mstor_doc_mb = DOC.Min_acum[-1] - DOC.Mpz_list[-1] - DOC.Mover_acum[-1] - DOC.Mpipe_acum[-1] - DOC.Minfsz_acum[-1] - DOC.Met_acum[-1] - DOC.Msoil_acum[-1] - DOC.MRx_acum[-1]
+            DOC.Mstor_mb_list.append(Mstor_doc_mb)
             
             delta_ast_doc_usz = (Mstor_doc_mb - Mstor_doc_ast)/(Ab*tteta_usz[t]*thusz[t]*1000/m_usz)
             cl_i1_doc[1] = cl_i1_doc[1] + delta_ast_doc_usz
@@ -1242,56 +1099,56 @@ def run_Kin():
             
             ### Oxygen
             
-            Mstor_o2_ast = sum(c_usz_o2[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz
-            Mstor_o2_ast_list.append(Mstor_o2_ast)
+            Mstor_o2_ast = sum(O2.c_usz[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz
+            O2.Mstor_ast_list.append(Mstor_o2_ast)
             
             Msoil_o2_a = 0
             Msoil_o2 = 0
-            Msoil_o2_acum.append(0)
+            O2.Msoil_acum.append(0)
             
-            MRx_o2 = - (sum(Rx_usz_o2[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz)
+            MRx_o2 = - (sum(O2.Rx_usz[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz)
             if t == 0:
-                MRx_o2_acum.append(MRx_o2)
+                O2.MRx_acum.append(MRx_o2)
             else:
-                MRx_o2_acum.append(MRx_o2 + MRx_o2_acum[-1])
+                O2.MRx_acum.append(MRx_o2 + O2.MRx_acum[-1])
     
     
             Min_o2 = tQin[t]*cin_o2_list[t]*dt*1000
             if t == 0:
-                Min_o2_acum.append(Min_o2)
+                O2.Min_acum.append(Min_o2)
             else:
-                Min_o2_acum.append(Min_o2 + Min_o2_acum[-1])
+                O2.Min_acum.append(Min_o2 + O2.Min_acum[-1])
     
-            Mover_o2 = tQover[t]*cp_o2[t]*dt*1000
+            Mover_o2 = tQover[t]*O2.cp[t]*dt*1000
             if t == 0:
-                Mover_o2_acum.append(Mover_o2)
+                O2.Mover_acum.append(Mover_o2)
             else:
-                Mover_o2_acum.append(Mover_o2 + Mover_o2_acum[-1])
+                O2.Mover_acum.append(Mover_o2 + O2.Mover_acum[-1])
              
-            Mpipe_o2 = tQpipe[t]*c_usz_o2[t][m_usz-1]*dt*1000 
+            Mpipe_o2 = tQpipe[t]*O2.c_usz[t][m_usz-1]*dt*1000
             if t == 0:
-                Mpipe_o2_acum.append(Mpipe_o2)
+                O2.Mpipe_acum.append(Mpipe_o2)
             else:
-                Mpipe_o2_acum.append(Mpipe_o2 + Mpipe_o2_acum[-1])
+                O2.Mpipe_acum.append(Mpipe_o2 + O2.Mpipe_acum[-1])
              
-            Minfsz_o2 = tQinfsz[t]*c_usz_o2[t][m_usz-1]*dt*1000 
+            Minfsz_o2 = tQinfsz[t]*O2.c_usz[t][m_usz-1]*dt*1000
             if t == 0:
-                Minfsz_o2_acum.append(Minfsz_o2)
+                O2.Minfsz_acum.append(Minfsz_o2)
             else:
-                Minfsz_o2_acum.append(Minfsz_o2 + Minfsz_o2_acum[-1])
+                O2.Minfsz_acum.append(Minfsz_o2 + O2.Minfsz_acum[-1])
              
             Met_o2 = tQet[t]*cl_i1_o2[0]*dt*1000
             if t == 0:
-                Met_o2_acum.append(Met_o2)
+                O2.Met_acum.append(Met_o2)
             else:
-                Met_o2_acum.append(Met_o2 + Met_o2_acum[-1])
+                O2.Met_acum.append(Met_o2 + O2.Met_acum[-1])
              
-            Mpz_o2 = thpEND[t]*Ab*1000*cp_o2[t]
-            Mpz_o2_list.append(Mpz_o2)
+            Mpz_o2 = thpEND[t]*Ab*1000*O2.cp[t]
+            O2.Mpz_list.append(Mpz_o2)
              
         
-            Mstor_o2_mb = Min_o2_acum[-1] - Mpz_o2_list[-1] - Mover_o2_acum[-1] - Mpipe_o2_acum[-1] - Minfsz_o2_acum[-1] - Met_o2_acum[-1] - Msoil_o2_acum[-1] - MRx_o2_acum[-1]
-            Mstor_o2_mb_list.append(Mstor_o2_mb)        
+            Mstor_o2_mb = O2.Min_acum[-1] - O2.Mpz_list[-1] - O2.Mover_acum[-1] - O2.Mpipe_acum[-1] - O2.Minfsz_acum[-1] - O2.Met_acum[-1] - O2.Msoil_acum[-1] - O2.MRx_acum[-1]
+            O2.Mstor_mb_list.append(Mstor_o2_mb)
             
             delta_ast_o2_usz = (Mstor_o2_mb - Mstor_o2_ast)/(Ab*tteta_usz[t]*thusz[t]*1000/m_usz)
             cl_i1_o2[1] = cl_i1_o2[1] + delta_ast_o2_usz
@@ -1302,57 +1159,57 @@ def run_Kin():
             
             ### Amonia
         
-            Mstor_nh4_ast = sum(c_usz_nh4[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz
-            Mstor_nh4_ast_list.append(Mstor_nh4_ast)
+            Mstor_nh4_ast = sum(NH4.c_usz[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz
+            NH4.Mstor_ast_list.append(Mstor_nh4_ast)
             
-            Msoil_nh4_a = cs_usz_nh4_a*ro*Ab*thusz[t]*1000 
-            Msoil_nh4 = sum(cs_usz_nh4[t])*ro*Ab*thusz[t]*1000/m_usz
-            Msoil_nh4_acum.append(Msoil_nh4 - Msoil_nh4_a)
+            Msoil_nh4_a = NH4.cs_usz_a*ro*Ab*thusz[t]*1000
+            Msoil_nh4 = sum(NH4.cs_usz[t])*ro*Ab*thusz[t]*1000/m_usz
+            NH4.Msoil_acum.append(Msoil_nh4 - Msoil_nh4_a)
             
        
-            MRx_nh4 = - (sum(Rx_usz_nh4[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz)
+            MRx_nh4 = - (sum(NH4.Rx_usz[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz)
             if t == 0:
-                MRx_nh4_acum.append(MRx_nh4)
+                NH4.MRx_acum.append(MRx_nh4)
             else:
-                MRx_nh4_acum.append(MRx_nh4 + MRx_nh4_acum[-1])
+                NH4.MRx_acum.append(MRx_nh4 + NH4.MRx_acum[-1])
     
     
             Min_nh4 = tQin[t]*cin_nh4_list[t]*dt*1000
             if t == 0:
-                Min_nh4_acum.append(Min_nh4)
+                NH4.Min_acum.append(Min_nh4)
             else:
-                Min_nh4_acum.append(Min_nh4 + Min_nh4_acum[-1])
+                NH4.Min_acum.append(Min_nh4 + NH4.Min_acum[-1])
     
-            Mover_nh4 = tQover[t]*cp_nh4[t]*dt*1000
+            Mover_nh4 = tQover[t]*NH4.cp[t]*dt*1000
             if t == 0:
-                Mover_nh4_acum.append(Mover_nh4)
+                NH4.Mover_acum.append(Mover_nh4)
             else:
-                Mover_nh4_acum.append(Mover_nh4 + Mover_nh4_acum[-1])
+                NH4.Mover_acum.append(Mover_nh4 + NH4.Mover_acum[-1])
              
-            Mpipe_nh4 = tQpipe[t]*c_usz_nh4[t][m_usz-1]*dt*1000 
+            Mpipe_nh4 = tQpipe[t]*NH4.c_usz[t][m_usz-1]*dt*1000
             if t == 0:
-                Mpipe_nh4_acum.append(Mpipe_nh4)
+                NH4.Mpipe_acum.append(Mpipe_nh4)
             else:
-                Mpipe_nh4_acum.append(Mpipe_nh4 + Mpipe_nh4_acum[-1])
+                NH4.Mpipe_acum.append(Mpipe_nh4 + NH4.Mpipe_acum[-1])
              
-            Minfsz_nh4 = tQinfsz[t]*c_usz_nh4[t][m_usz-1]*dt*1000 
+            Minfsz_nh4 = tQinfsz[t]*NH4.c_usz[t][m_usz-1]*dt*1000
             if t == 0:
-                Minfsz_nh4_acum.append(Minfsz_nh4)
+                NH4.Minfsz_acum.append(Minfsz_nh4)
             else:
-                Minfsz_nh4_acum.append(Minfsz_nh4 + Minfsz_nh4_acum[-1])
+                NH4.Minfsz_acum.append(Minfsz_nh4 + NH4.Minfsz_acum[-1])
              
             Met_nh4 = tQet[t]*cl_i1_nh4[0]*dt*1000
             if t == 0:
-                Met_nh4_acum.append(Met_nh4)
+                NH4.Met_acum.append(Met_nh4)
             else:
-                Met_nh4_acum.append(Met_nh4 + Met_nh4_acum[-1])
+                NH4.Met_acum.append(Met_nh4 + NH4.Met_acum[-1])
              
-            Mpz_nh4 = thpEND[t]*Ab*1000*cp_nh4[t]
-            Mpz_nh4_list.append(Mpz_nh4)
+            Mpz_nh4 = thpEND[t]*Ab*1000*NH4.cp[t]
+            NH4.Mpz_list.append(Mpz_nh4)
              
         
-            Mstor_nh4_mb = Min_nh4_acum[-1] - Mpz_nh4_list[-1] - Mover_nh4_acum[-1] - Mpipe_nh4_acum[-1] - Minfsz_nh4_acum[-1] - Met_nh4_acum[-1] - Msoil_nh4_acum[-1] - MRx_nh4_acum[-1]
-            Mstor_nh4_mb_list.append(Mstor_nh4_mb)        
+            Mstor_nh4_mb = NH4.Min_acum[-1] - NH4.Mpz_list[-1] - NH4.Mover_acum[-1] - NH4.Mpipe_acum[-1] - NH4.Minfsz_acum[-1] - NH4.Met_acum[-1] - NH4.Msoil_acum[-1] - NH4.MRx_acum[-1]
+            NH4.Mstor_mb_list.append(Mstor_nh4_mb)
              
             
             delta_ast_nh4_usz = (Mstor_nh4_mb - Mstor_nh4_ast)/(Ab*tteta_usz[t]*thusz[t]*1000/m_usz)
@@ -1364,57 +1221,57 @@ def run_Kin():
 
             ### Nitrate
             
-            Mstor_no3_ast = sum(c_usz_no3[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz
-            Mstor_no3_ast_list.append(Mstor_no3_ast)
+            Mstor_no3_ast = sum(NO3.c_usz[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz
+            NO3.Mstor_ast_list.append(Mstor_no3_ast)
             
             Msoil_no3_a = 0
             Msoil_no3 = 0
-            Msoil_no3_acum.append(0)
+            NO3.Msoil_acum.append(0)
             
        
-            MRx_no3 = - (sum(Rx_usz_no3[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz)
+            MRx_no3 = - (sum(NO3.Rx_usz[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz)
             if t == 0:
-                MRx_no3_acum.append(MRx_no3)
+                NO3.MRx_acum.append(MRx_no3)
             else:
-                MRx_no3_acum.append(MRx_no3 + MRx_no3_acum[-1])
+                NO3.MRx_acum.append(MRx_no3 + NO3.MRx_acum[-1])
     
     
             Min_no3 = tQin[t]*cin_no3_list[t]*dt*1000
             if t == 0:
-                Min_no3_acum.append(Min_no3)
+                NO3.Min_acum.append(Min_no3)
             else:
-                Min_no3_acum.append(Min_no3 + Min_no3_acum[-1])
+                NO3.Min_acum.append(Min_no3 + NO3.Min_acum[-1])
     
-            Mover_no3 = tQover[t]*cp_no3[t]*dt*1000
+            Mover_no3 = tQover[t]*NO3.cp[t]*dt*1000
             if t == 0:
-                Mover_no3_acum.append(Mover_no3)
+                NO3.Mover_acum.append(Mover_no3)
             else:
-                Mover_no3_acum.append(Mover_no3 + Mover_no3_acum[-1])
+                NO3.Mover_acum.append(Mover_no3 + NO3.Mover_acum[-1])
              
-            Mpipe_no3 = tQpipe[t]*c_usz_no3[t][m_usz-1]*dt*1000 
+            Mpipe_no3 = tQpipe[t]*NO3.c_usz[t][m_usz-1]*dt*1000
             if t == 0:
-                Mpipe_no3_acum.append(Mpipe_no3)
+                NO3.Mpipe_acum.append(Mpipe_no3)
             else:
-                Mpipe_no3_acum.append(Mpipe_no3 + Mpipe_no3_acum[-1])
+                NO3.Mpipe_acum.append(Mpipe_no3 + NO3.Mpipe_acum[-1])
              
-            Minfsz_no3 = tQinfsz[t]*c_usz_no3[t][m_usz-1]*dt*1000 
+            Minfsz_no3 = tQinfsz[t]*NO3.c_usz[t][m_usz-1]*dt*1000
             if t == 0:
-                Minfsz_no3_acum.append(Minfsz_no3)
+                NO3.Minfsz_acum.append(Minfsz_no3)
             else:
-                Minfsz_no3_acum.append(Minfsz_no3 + Minfsz_no3_acum[-1])
+                NO3.Minfsz_acum.append(Minfsz_no3 + NO3.Minfsz_acum[-1])
              
             Met_no3 = tQet[t]*cl_i1_no3[0]*dt*1000
             if t == 0:
-                Met_no3_acum.append(Met_no3)
+                NO3.Met_acum.append(Met_no3)
             else:
-                Met_no3_acum.append(Met_no3 + Met_no3_acum[-1])
+                NO3.Met_acum.append(Met_no3 + NO3.Met_acum[-1])
              
-            Mpz_no3 = thpEND[t]*Ab*1000*cp_no3[t]
-            Mpz_no3_list.append(Mpz_no3)
+            Mpz_no3 = thpEND[t]*Ab*1000*NO3.cp[t]
+            NO3.Mpz_list.append(Mpz_no3)
              
         
-            Mstor_no3_mb = Min_no3_acum[-1] - Mpz_no3_list[-1] - Mover_no3_acum[-1] - Mpipe_no3_acum[-1] - Minfsz_no3_acum[-1] - Met_no3_acum[-1] - Msoil_no3_acum[-1] - MRx_no3_acum[-1]
-            Mstor_no3_mb_list.append(Mstor_no3_mb)        
+            Mstor_no3_mb = NO3.Min_acum[-1] - NO3.Mpz_list[-1] - NO3.Mover_acum[-1] - NO3.Mpipe_acum[-1] - NO3.Minfsz_acum[-1] - NO3.Met_acum[-1] - NO3.Msoil_acum[-1] - NO3.MRx_acum[-1]
+            NO3.Mstor_mb_list.append(Mstor_no3_mb)
             
             delta_ast_no3_usz = (Mstor_no3_mb - Mstor_no3_ast)/(Ab*tteta_usz[t]*thusz[t]*1000/m_usz)
             cl_i1_no3[1] = cl_i1_no3[1] + delta_ast_no3_usz
@@ -1425,57 +1282,57 @@ def run_Kin():
             
             ### DOC
             
-            Mstor_doc_ast = sum(c_usz_doc[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz
-            Mstor_doc_ast_list.append(Mstor_doc_ast)
+            Mstor_doc_ast = sum(DOC.c_usz[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz
+            DOC.Mstor_ast_list.append(Mstor_doc_ast)
             
-            Msoil_doc_a = cs_usz_doc_a*ro*Ab*thusz[t]*1000 
-            Msoil_doc = sum(cs_usz_doc[t])*ro*Ab*thusz[t]*1000/m_usz
-            Msoil_doc_acum.append(Msoil_doc - Msoil_doc_a)
+            Msoil_doc_a = DOC.cs_usz_a*ro*Ab*thusz[t]*1000
+            Msoil_doc = sum(DOC.cs_usz[t])*ro*Ab*thusz[t]*1000/m_usz
+            DOC.Msoil_acum.append(Msoil_doc - Msoil_doc_a)
             
        
-            MRx_doc = - (sum(Rx_usz_doc[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz)
+            MRx_doc = - (sum(DOC.Rx_usz[t])*Ab*tteta_usz[t]*thusz[t]*1000/m_usz)
             if t == 0:
-                MRx_doc_acum.append(MRx_doc)
+                DOC.MRx_acum.append(MRx_doc)
             else:
-                MRx_doc_acum.append(MRx_doc + MRx_doc_acum[-1])
+                DOC.MRx_acum.append(MRx_doc + DOC.MRx_acum[-1])
     
     
             Min_doc = tQin[t]*cin_doc_list[t]*dt*1000
             if t == 0:
-                Min_doc_acum.append(Min_doc)
+                DOC.Min_acum.append(Min_doc)
             else:
-                Min_doc_acum.append(Min_doc + Min_doc_acum[-1])
+                DOC.Min_acum.append(Min_doc + DOC.Min_acum[-1])
     
-            Mover_doc = tQover[t]*cp_doc[t]*dt*1000
+            Mover_doc = tQover[t]*DOC.cp[t]*dt*1000
             if t == 0:
-                Mover_doc_acum.append(Mover_doc)
+                DOC.Mover_acum.append(Mover_doc)
             else:
-                Mover_doc_acum.append(Mover_doc + Mover_doc_acum[-1])
+                DOC.Mover_acum.append(Mover_doc + DOC.Mover_acum[-1])
              
-            Mpipe_doc = tQpipe[t]*c_usz_doc[t][m_usz-1]*dt*1000 
+            Mpipe_doc = tQpipe[t]*DOC.c_usz[t][m_usz-1]*dt*1000
             if t == 0:
-                Mpipe_doc_acum.append(Mpipe_doc)
+                DOC.Mpipe_acum.append(Mpipe_doc)
             else:
-                Mpipe_doc_acum.append(Mpipe_doc + Mpipe_doc_acum[-1])
+                DOC.Mpipe_acum.append(Mpipe_doc + DOC.Mpipe_acum[-1])
              
-            Minfsz_doc = tQinfsz[t]*c_usz_doc[t][m_usz-1]*dt*1000 
+            Minfsz_doc = tQinfsz[t]*DOC.c_usz[t][m_usz-1]*dt*1000
             if t == 0:
-                Minfsz_doc_acum.append(Minfsz_doc)
+                DOC.Minfsz_acum.append(Minfsz_doc)
             else:
-                Minfsz_doc_acum.append(Minfsz_doc + Minfsz_doc_acum[-1])
+                DOC.Minfsz_acum.append(Minfsz_doc + DOC.Minfsz_acum[-1])
              
             Met_doc = tQet[t]*cl_i1_doc[0]*dt*1000
             if t == 0:
-                Met_doc_acum.append(Met_doc)
+                DOC.Met_acum.append(Met_doc)
             else:
-                Met_doc_acum.append(Met_doc + Met_doc_acum[-1])
+                DOC.Met_acum.append(Met_doc + DOC.Met_acum[-1])
              
-            Mpz_doc = thpEND[t]*Ab*1000*cp_doc[t]
-            Mpz_doc_list.append(Mpz_doc)
+            Mpz_doc = thpEND[t]*Ab*1000*DOC.cp[t]
+            DOC.Mpz_list.append(Mpz_doc)
              
         
-            Mstor_doc_mb = Min_doc_acum[-1] - Mpz_doc_list[-1] - Mover_doc_acum[-1] - Mpipe_doc_acum[-1] - Minfsz_doc_acum[-1] - Met_doc_acum[-1] - Msoil_doc_acum[-1] - MRx_doc_acum[-1]
-            Mstor_doc_mb_list.append(Mstor_doc_mb)        
+            Mstor_doc_mb = DOC.Min_acum[-1] - DOC.Mpz_list[-1] - DOC.Mover_acum[-1] - DOC.Mpipe_acum[-1] - DOC.Minfsz_acum[-1] - DOC.Met_acum[-1] - DOC.Msoil_acum[-1] - DOC.MRx_acum[-1]
+            DOC.Mstor_mb_list.append(Mstor_doc_mb)
             
             delta_ast_doc_usz = (Mstor_doc_mb - Mstor_doc_ast)/(Ab*tteta_usz[t]*thusz[t]*1000/m_usz)
             cl_i1_doc[1] = cl_i1_doc[1] + delta_ast_doc_usz
@@ -1487,39 +1344,39 @@ def run_Kin():
        
         
     ## adding layers of USZ in time 
-        c_usz_o2.append(cl_i1_o2)
-        Rx_usz_o2.append(Rxl_o2)
+        O2.c_usz.append(cl_i1_o2)
+        O2.Rx_usz.append(Rxl_o2)
                
-        c_usz_nh4.append(cl_i1_nh4)
-        cs_usz_nh4.append(csi_usz_nh4)
-        Rx_usz_nh4.append(Rxl_nh4)
+        NH4.c_usz.append(cl_i1_nh4)
+        NH4.cs_usz.append(csi_usz_nh4)
+        NH4.Rx_usz.append(Rxl_nh4)
         
-        c_usz_no3.append(cl_i1_no3)
-        Rx_usz_no3.append(Rxl_no3)
+        NO3.c_usz.append(cl_i1_no3)
+        NO3.Rx_usz.append(Rxl_no3)
         
-        c_usz_doc.append(cl_i1_doc)
-        cs_usz_doc.append(csi_usz_doc)
-        Rx_usz_doc.append(Rxl_doc)
+        DOC.c_usz.append(cl_i1_doc)
+        DOC.cs_usz.append(csi_usz_doc)
+        DOC.Rx_usz.append(Rxl_doc)
         
     ## adding layers of SZ in time
         if hpipe > 0:
-            c_sz_o2.append(cj_i1_o2)
-            Rx_sz_o2.append(Rxj_o2)
+            O2.c_sz.append(cj_i1_o2)
+            O2.Rx_sz.append(Rxj_o2)
             
-            c_sz_nh4.append(cj_i1_nh4)
-            cs_sz_nh4.append(csi_sz_nh4)
-            Rx_sz_nh4.append(Rxj_nh4)
+            NH4.c_sz.append(cj_i1_nh4)
+            NH4.cs_sz.append(csi_sz_nh4)
+            NH4.Rx_sz.append(Rxj_nh4)
             
-            c_sz_no3.append(cj_i1_no3)
-            Rx_sz_no3.append(Rxj_no3)
+            NO3.c_sz.append(cj_i1_no3)
+            NO3.Rx_sz.append(Rxj_no3)
             
-            c_sz_doc.append(cj_i1_doc)
-            cs_sz_doc.append(csi_sz_doc)
-            Rx_sz_doc.append(Rxj_doc)
+            DOC.c_sz.append(cj_i1_doc)
+            DOC.cs_sz.append(csi_sz_doc)
+            DOC.Rx_sz.append(Rxj_doc)
             
     # **5. Transforming in dataframe **
     ## Oxygen
-    data_usz_o2 = pd.DataFrame(c_usz_o2)
+    data_usz_o2 = pd.DataFrame(O2.c_usz)
     a = 0
     column_name = []
     for i in range(m_usz):
@@ -1530,7 +1387,7 @@ def run_Kin():
     
     #print(data_usz_o2)
     
-    data_sz_o2 = pd.DataFrame(c_sz_o2)
+    data_sz_o2 = pd.DataFrame(O2.c_sz)
     a = 0
     column_name = []
     for i in range(m_sz):
@@ -1539,7 +1396,7 @@ def run_Kin():
         a = a + 1
     data_sz_o2.set_axis(column_name, axis = 'columns', inplace = True)
 
-    data_rx_usz_o2 = pd.DataFrame(Rx_usz_o2)
+    data_rx_usz_o2 = pd.DataFrame(O2.Rx_usz)
     a = 0
     column_name = []
     for i in range(m_usz):
@@ -1548,7 +1405,7 @@ def run_Kin():
         a = a + 1
     data_rx_usz_o2.set_axis(column_name, axis = 'columns', inplace = True)
     
-    data_rx_sz_o2 = pd.DataFrame(Rx_sz_o2)
+    data_rx_sz_o2 = pd.DataFrame(O2.Rx_sz)
     a = 0
     column_name = []
     for i in range(m_sz):
@@ -1560,10 +1417,10 @@ def run_Kin():
     frames = [data_usz_o2, data_sz_o2, data_rx_usz_o2, data_rx_sz_o2]
     data_o2 = pd.concat((frames), axis = 1)
 
-    cp_o2.append(0)
-    data_o2['pz'] = cp_o2
+    O2.cp.append(0)
+    data_o2['pz'] = O2.cp
     
-    indice_n = list(range(len(cp_o2)))
+    indice_n = list(range(len(O2.cp)))
     cin_o2_list.append(0)
     c_in = cin_o2_list[:len(indice_n)]
     #print('len c_in:', len(c_in), ', len_indice:', len(indice))
@@ -1573,7 +1430,7 @@ def run_Kin():
 
    
     ## Amonia
-    data_usz_nh4 = pd.DataFrame(c_usz_nh4)
+    data_usz_nh4 = pd.DataFrame(NH4.c_usz)
     a = 0
     column_name = []
     for i in range(m_usz):
@@ -1582,7 +1439,7 @@ def run_Kin():
         a = a + 1
     data_usz_nh4.set_axis(column_name, axis = 'columns', inplace = True)
     
-    data_sz_nh4 = pd.DataFrame(c_sz_nh4)
+    data_sz_nh4 = pd.DataFrame(NH4.c_sz)
     a = 0
     column_name = []
     for i in range(m_sz):
@@ -1591,7 +1448,7 @@ def run_Kin():
         a = a + 1
     data_sz_nh4.set_axis(column_name, axis = 'columns', inplace = True)
     
-    data_s_usz_nh4 = pd.DataFrame(cs_usz_nh4)
+    data_s_usz_nh4 = pd.DataFrame(NH4.cs_usz)
     a = 0
     column_name = []
     for i in range(m_usz):
@@ -1600,7 +1457,7 @@ def run_Kin():
         a = a + 1
     data_s_usz_nh4.set_axis(column_name, axis = 'columns', inplace = True)
     
-    data_s_sz_nh4 = pd.DataFrame(cs_sz_nh4)
+    data_s_sz_nh4 = pd.DataFrame(NH4.cs_sz)
     a = 0
     column_name = []
     for i in range(m_sz):
@@ -1609,7 +1466,7 @@ def run_Kin():
         a = a + 1
     data_s_sz_nh4.set_axis(column_name, axis = 'columns', inplace = True)
     
-    data_rx_usz_nh4 = pd.DataFrame(Rx_usz_nh4)
+    data_rx_usz_nh4 = pd.DataFrame(NH4.Rx_usz)
     a = 0
     column_name = []
     for i in range(m_usz):
@@ -1618,7 +1475,7 @@ def run_Kin():
         a = a + 1
     data_rx_usz_nh4.set_axis(column_name, axis = 'columns', inplace = True)
     
-    data_rx_sz_nh4 = pd.DataFrame(Rx_sz_nh4)
+    data_rx_sz_nh4 = pd.DataFrame(NH4.Rx_sz)
     a = 0
     column_name = []
     for i in range(m_sz):
@@ -1630,19 +1487,19 @@ def run_Kin():
     
     frames = [data_usz_nh4, data_sz_nh4, data_s_usz_nh4, data_s_sz_nh4, data_rx_usz_nh4, data_rx_sz_nh4]
     data_nh4 = pd.concat((frames), axis = 1)
-    cp_nh4.append(0)
+    NH4.cp.append(0)
     cin_nh4_list.append(0)
     c_in = cin_nh4_list[:len(indice_n)]
     #print('len c_in:', len(c_in), ', len_indice:', len(indice))
     data_nh4['c_in'] = c_in
     
-    data_nh4['pz'] = cp_nh4
+    data_nh4['pz'] = NH4.cp
     #indice.append(len(indice)+1)
     data_nh4['t'] = indice_n
     
     
     ## Nitrate
-    data_usz_no3 = pd.DataFrame(c_usz_no3)
+    data_usz_no3 = pd.DataFrame(NO3.c_usz)
     a = 0
     column_name = []
     for i in range(m_usz):
@@ -1651,7 +1508,7 @@ def run_Kin():
         a = a + 1
     data_usz_no3.set_axis(column_name, axis = 'columns', inplace = True)
     
-    data_sz_no3 = pd.DataFrame(c_sz_no3)
+    data_sz_no3 = pd.DataFrame(NO3.c_sz)
     a = 0
     column_name = []
     for i in range(m_sz):
@@ -1660,7 +1517,7 @@ def run_Kin():
         a = a + 1
     data_sz_no3.set_axis(column_name, axis = 'columns', inplace = True)
     
-    data_rx_usz_no3 = pd.DataFrame(Rx_usz_no3)
+    data_rx_usz_no3 = pd.DataFrame(NO3.Rx_usz)
     a = 0
     column_name = []
     for i in range(m_usz):
@@ -1669,7 +1526,7 @@ def run_Kin():
         a = a + 1
     data_rx_usz_no3.set_axis(column_name, axis = 'columns', inplace = True)
     
-    data_rx_sz_no3 = pd.DataFrame(Rx_sz_no3)
+    data_rx_sz_no3 = pd.DataFrame(NO3.Rx_sz)
     a = 0
     column_name = []
     for i in range(m_sz):
@@ -1680,8 +1537,8 @@ def run_Kin():
     
     frames = [data_usz_no3, data_sz_no3, data_rx_usz_no3, data_rx_sz_no3]
     data_no3 = pd.concat((frames), axis = 1)
-    cp_no3.append(0)
-    data_no3['pz'] = cp_no3
+    NO3.cp.append(0)
+    data_no3['pz'] = NO3.cp
     
     cin_no3_list.append(0)
     c_in = cin_no3_list[:len(indice_n)]
@@ -1690,7 +1547,7 @@ def run_Kin():
     data_no3['t'] = indice_n
     
     ## DOC
-    data_usz_doc = pd.DataFrame(c_usz_doc)
+    data_usz_doc = pd.DataFrame(DOC.c_usz)
     a = 0
     column_name = []
     for i in range(m_usz):
@@ -1699,7 +1556,7 @@ def run_Kin():
         a = a + 1
     data_usz_doc.set_axis(column_name, axis = 'columns', inplace = True)
     
-    data_sz_doc = pd.DataFrame(c_sz_doc)
+    data_sz_doc = pd.DataFrame(DOC.c_sz)
     a = 0
     column_name = []
     for i in range(m_sz):
@@ -1708,7 +1565,7 @@ def run_Kin():
         a = a + 1
     data_sz_doc.set_axis(column_name, axis = 'columns', inplace = True)
 
-    data_rx_usz_doc = pd.DataFrame(Rx_usz_doc)
+    data_rx_usz_doc = pd.DataFrame(DOC.Rx_usz)
     a = 0
     column_name = []
     for i in range(m_usz):
@@ -1717,7 +1574,7 @@ def run_Kin():
         a = a + 1
     data_rx_usz_doc.set_axis(column_name, axis = 'columns', inplace = True)
     
-    data_rx_sz_doc = pd.DataFrame(Rx_sz_doc)
+    data_rx_sz_doc = pd.DataFrame(DOC.Rx_sz)
     a = 0
     column_name = []
     for i in range(m_sz):
@@ -1728,8 +1585,8 @@ def run_Kin():
     
     frames = [data_usz_doc, data_sz_doc, data_rx_usz_doc, data_rx_sz_doc]
     data_doc = pd.concat((frames), axis = 1)
-    cp_doc.append(0)
-    data_doc['pz'] = cp_doc
+    DOC.cp.append(0)
+    data_doc['pz'] = DOC.cp
     
     cin_doc_list.append(0)
     c_in = cin_doc_list[:len(indice_n)]
