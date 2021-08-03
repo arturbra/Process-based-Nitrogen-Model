@@ -62,7 +62,7 @@ WFR = WaterFlowResults()
 
 ###  2. Definition of parameters
 
-setup_file = "tc_pf.ini"
+setup_file = "parameters.ini"
 setup = configparser.ConfigParser()
 setup.read(setup_file)
 
@@ -241,30 +241,7 @@ def cnusz(husz,hsz,nusz_ini, ng, Dg, Df):
 
 ###   4. Model routine
 
-tt = []
-tQover = []
-tQpf = []
-tQinfp = []
-tQfs = []
-tQhc = []
-tQet = []
-tQinfsz = []
-tQpipe = []
-tQet1 = []
-tQet2 = []
-
-thp = []
-ts = []
-thsz = []
-thszEST = []
-thusz =[]
-tnsz = []
-tnusz = []
-thpEND = []
-tteta_usz = []
-tteta_sz = []
-
-indice = list(range(0, len(tQrain)))
+WFR.indice = list(range(0, len(WFR.tQrain)))
 
 def run_W():
     
@@ -282,17 +259,17 @@ def run_W():
     nsz = ng
     s = sw
 
-    for t in range(len(tQrain)):
-        Qin = tQin[t]
-        Qrain = tQrain[t]
-        Emax = tEmax[t]
+    for t in range(len(WFR.tQrain)):
+        Qin = WFR.tQin[t]
+        Qrain = WFR.tQrain[t]
+        Emax = WFR.tEmax[t]
         
         #PZ#
         Qover = cQover(Kweir, wWeir, hpEND, Hover, expWeir, Ab, dt, Qin, Qrain)
 #         print('Qover: ', Qover)
 #         input()
         
-        hp = max(hpEND+dt/Ab*(tQrain[t]+Qin-Qover),0)   #beginning
+        hp = max(hpEND+dt/Ab*(WFR.tQrain[t]+Qin-Qover),0)   #beginning
 #         print('hp:', hp)
 #         input()
         
@@ -343,9 +320,9 @@ def run_W():
             nusz_a = nusz_ini
             s_a = sw
         else:
-            husz_a = thusz[t-1]
-            nusz_a = tnusz[t-1]
-            s_a = ts[t-1]
+            husz_a = WFR.thusz[t-1]
+            nusz_a = WFR.tnusz[t-1]
+            s_a = WFR.ts[t-1]
             
         s = max(min(1.0, (s_a*husz_a*nusz_a*A + dt*(Qpf + Qhc - Qfs - Qet1))/(A*husz*nusz)), sh)
         #print('s:', s, ', s_a: ', s_a, ', husz_a: ', husz_a, ', nusz_a: ', nusz_a, ', A: ', A, ', Qpf: ', Qpf, ', Qhc: ', Qhc, ', Qfs: ', Qfs, ', Qet1: ', Qet1, ', husz: ', husz, ', nusz: ' , nusz)
@@ -385,7 +362,7 @@ if __name__ == '__main__':
     
     dict_data = {
         't': WFR.tt,
-        'Qin': tQin[:len(WFR.tt)],
+        'Qin': WFR.tQin[:len(WFR.tt)],
         'Qet': WFR.tQet[:len(WFR.tt)],
         'hpEND': WFR.thpEND[:len(WFR.tt)],
         'Qpf': WFR.tQpf[:len(WFR.tt)],
@@ -397,7 +374,7 @@ if __name__ == '__main__':
         'Qet_2': WFR.tQet2[:len(WFR.tt)],
         'teta_usz': WFR.tteta_usz[:len(WFR.tt)],
         'teta_sz': WFR.tteta_sz[:len(WFR.tt)],
-        'Qrain': tQrain[:len(WFR.tt)],
+        'Qrain': WFR.tQrain[:len(WFR.tt)],
         'Qinfp': WFR.tQinfp[:len(WFR.tt)],
         'Qinfsz': WFR.tQinfsz[:len(WFR.tt)],
         'hp': WFR.thp[:len(WFR.tt)],
