@@ -35,6 +35,10 @@ class GeneralParameters:
         self.d50 = float(setup['MODEL']['d50'])
         self.k_nit = float(setup['NITRIFICATION']['k_nit'])
         self.k_denit = float(setup['DENITRIFICATION']['k_denit'])
+        self.hpipe = float(setup['SATURATED_ZONE']['hpipe'])
+        self.dpipe = float(setup['SATURATED_ZONE']['dpipe'])
+        self.Cd = float(setup['SATURATED_ZONE']['Cd'])
+        self.Apipe = pi * (self.dpipe / (1000 * 2)) ** 2
 
 
 class PondingZone:
@@ -51,7 +55,7 @@ class PondingZone:
         self.flagp = float(setup['PONDING_ZONE']['flagp'])
         self.k_denit_pz = float(setup['DENITRIFICATION']['k_denit_pz'])
 
-    def f_concentration(self, cin, Qin_p, cp_a, I1, Qv, Rxi, hp, hp_a):
+    def f_concentration(self, cin, Qin_p, cp_a, I1, Qv, Rxi, hp, hp_a, Ab, dt):
         concentration = (cp_a * hp_a * Ab + (cin * Qin_p - cp_a * (I1 + Qv) + Rxi * hp * Ab) * dt) / (hp * Ab)
         return concentration
 
@@ -98,11 +102,7 @@ class SaturatedZone:
         setup = configparser.ConfigParser()
         setup.read(setup_file)
         self.Psz = float(setup['SATURATED_ZONE']['Psz'])
-        self.hpipe = float(setup['SATURATED_ZONE']['hpipe'])
         self.flagsz = float(setup['SATURATED_ZONE']['flagsz'])
-        self.dpipe = float(setup['SATURATED_ZONE']['dpipe'])
-        self.Cd = float(setup['SATURATED_ZONE']['Cd'])
-        self.Apipe = pi * (self.dpipe / (1000 * 2)) ** 2
         self.m_sz = n - m_usz
 
     def f_alfa_beta(self, layer):
@@ -197,9 +197,6 @@ class SoilPlant:
         else:
             plant_uptake = -self.root_fraction * (root_influx * teta_b * concentration / (michaleis_uptake_constant + teta_b * concentration))
         return plant_uptake
-
-
-
 
 
 class Nutrient:
@@ -346,11 +343,11 @@ class DissolvedOrganicCarbon(Nutrient):
     def f_reaction_pz(self):
         return 0
     
-    def f_reactions_USZ(self, C_doc_iminus1):
+    def f_reaction_usz(self, C_doc_iminus1):
         reaction = -self.k_doc * C_doc_iminus1 + self.bDOCd
         return reaction
 
-    def f_reactions_SZ(self, C_doc_iminus1):
+    def f_reaction_sz(self, C_doc_iminus1):
         reaction = -self.k_doc * C_doc_iminus1 + self.bDOCd
         return reaction
         

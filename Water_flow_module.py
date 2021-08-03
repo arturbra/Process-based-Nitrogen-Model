@@ -392,8 +392,8 @@ if __name__ == '__main__':
 #     data[['Qin','Qover','Qpipe', 'Qinfsz']].plot(figsize=(15,8), linewidth=1)
 #     plt.show()
       
-    
-    data.to_csv('water_flow_results.csv', index = False)
+    #Uncomment this line to generate the .csv with the results
+    #data.to_csv('water_flow_results.csv', index = False)
     
     ###  5. Water balance
     
