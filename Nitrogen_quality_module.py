@@ -15,14 +15,15 @@ O2 = parameters.Oxygen(SETUP_FILE)
 DOC = parameters.DissolvedOrganicCarbon(SETUP_FILE)
 
 
+
 # **4. Model routine**
 def run_Kin():
     for t in range(len(indice)-1):
         #Ponding zone
-        cin_o2 = cin_o2_list[t]
-        cin_nh4 = cin_nh4_list[t]
-        cin_no3 = cin_no3_list[t]
-        cin_doc = cin_doc_list[t]
+        cin_o2 = INFLOW_PARAMETERS.cin_o2[t]
+        cin_nh4 = INFLOW_PARAMETERS.cin_nh4[t]
+        cin_no3 = INFLOW_PARAMETERS.cin_no3[t]
+        cin_doc = INFLOW_PARAMETERS.cin_doc[t]
         
         #print('t', t)
         hp = thpEND[t]

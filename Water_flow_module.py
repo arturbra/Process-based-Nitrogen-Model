@@ -30,6 +30,35 @@ tEmax = Emax_file['ET'].tolist()
 Qin_file = pd.read_csv('inflow.csv')
 tQin = Qin_file['Qin'].tolist()
 
+class WaterFlowResults:
+    def __init__(self):
+        self.indice = list(range(0, len(tQrain)))
+        self.tt = []
+        self.tQover = []
+        self.tQpf = []
+        self.tQinfp = []
+        self.tQfs = []
+        self.tQhc = []
+        self.tQet = []
+        self.tQinfsz = []
+        self.tQpipe = []
+        self.tQet1 = []
+        self.tQet2 = []
+        self.thp = []
+        self.ts = []
+        self.thusz = []
+        self.thsz = []
+        self.thszEST = []
+        self.tnsz = []
+        self.tnusz = []
+        self.thpEND = []
+        self.tteta_usz = []
+        self.tteta_sz = []
+        self.tQin = tQin
+        self.tQrain = tQrain
+        self.tEmax = tEmax
+
+WFR = WaterFlowResults()
 
 ###  2. Definition of parameters
 
@@ -321,32 +350,30 @@ def run_W():
         s = max(min(1.0, (s_a*husz_a*nusz_a*A + dt*(Qpf + Qhc - Qfs - Qet1))/(A*husz*nusz)), sh)
         #print('s:', s, ', s_a: ', s_a, ', husz_a: ', husz_a, ', nusz_a: ', nusz_a, ', A: ', A, ', Qpf: ', Qpf, ', Qhc: ', Qhc, ', Qfs: ', Qfs, ', Qet1: ', Qet1, ', husz: ', husz, ', nusz: ' , nusz)
         #input()
-        
-        #save all results
-        tt.append(t)
-        tQover.append(Qover)
-        tQpf.append(Qpf)
-        tQinfp.append(Qinfp)
-        tQfs.append(Qfs)
-        tQhc.append(Qhc)
-        tQet.append(Qet)
-        tQinfsz.append(Qinfsz)
-        tQpipe.append(Qpipe)
-        tQet1.append(Qet1)
-        tQet2.append(Qet2)
-    
-        thp.append(hp)
-        ts.append(s)
-        thusz.append(husz)
-        thsz.append(hsz)
-        thszEST.append(hszEST)
-        tnsz.append(nsz)
-        tnusz.append(nusz)
-        thpEND.append(hpEND)
-        tteta_usz.append(s*nusz)
-        tteta_sz.append(nsz)
 
+        # save all results to WFR
+        WFR.tt.append(t)
+        WFR.tQover.append(Qover)
+        WFR.tQpf.append(Qpf)
+        WFR.tQinfp.append(Qinfp)
+        WFR.tQfs.append(Qfs)
+        WFR.tQhc.append(Qhc)
+        WFR.tQet.append(Qet)
+        WFR.tQinfsz.append(Qinfsz)
+        WFR.tQpipe.append(Qpipe)
+        WFR.tQet1.append(Qet1)
+        WFR.tQet2.append(Qet2)
 
+        WFR.thp.append(hp)
+        WFR.ts.append(s)
+        WFR.thusz.append(husz)
+        WFR.thsz.append(hsz)
+        WFR.thszEST.append(hszEST)
+        WFR.tnsz.append(nsz)
+        WFR.tnusz.append(nusz)
+        WFR.thpEND.append(hpEND)
+        WFR.tteta_usz.append(s * nusz)
+        WFR.tteta_sz.append(nsz)
 
 
 if __name__ == '__main__':
@@ -357,29 +384,29 @@ if __name__ == '__main__':
     ###   6. Saving the results in CSV
     
     dict_data = {
-        't': tt,
-        'Qin': tQin[:len(tt)],
-        'Qet': tQet[:len(tt)],
-        'hpEND': thpEND[:len(tt)],
-        'Qpf': tQpf[:len(tt)],
-        'Qover': tQover[:len(tt)],
-        'Qfs': tQfs[:len(tt)],
-        'Qet_1': tQet1[:len(tt)],
-        'Qhc': tQhc[:len(tt)],
-        'Qpipe': tQpipe[:len(tt)],
-        'Qet_2': tQet2[:len(tt)],
-        'teta_usz': tteta_usz[:len(tt)],
-        'teta_sz': tteta_sz[:len(tt)],
-        'Qrain': tQrain[:len(tt)],      
-        'Qinfp': tQinfp[:len(tt)],        
-        'Qinfsz': tQinfsz[:len(tt)],
-        'hp': thp[:len(tt)],
-        's': ts[:len(tt)],
-        'husz': thusz[:len(tt)],
-        'hsz': thsz[:len(tt)],
-        'nsz': tnsz[:len(tt)],
-        'nusz': tnusz[:len(tt)],
-        'hszEST' : thszEST[:len(tt)]
+        't': WFR.tt,
+        'Qin': tQin[:len(WFR.tt)],
+        'Qet': WFR.tQet[:len(WFR.tt)],
+        'hpEND': WFR.thpEND[:len(WFR.tt)],
+        'Qpf': WFR.tQpf[:len(WFR.tt)],
+        'Qover': WFR.tQover[:len(WFR.tt)],
+        'Qfs': WFR.tQfs[:len(WFR.tt)],
+        'Qet_1': WFR.tQet1[:len(WFR.tt)],
+        'Qhc': WFR.tQhc[:len(WFR.tt)],
+        'Qpipe': WFR.tQpipe[:len(WFR.tt)],
+        'Qet_2': WFR.tQet2[:len(WFR.tt)],
+        'teta_usz': WFR.tteta_usz[:len(WFR.tt)],
+        'teta_sz': WFR.tteta_sz[:len(WFR.tt)],
+        'Qrain': tQrain[:len(WFR.tt)],
+        'Qinfp': WFR.tQinfp[:len(WFR.tt)],
+        'Qinfsz': WFR.tQinfsz[:len(WFR.tt)],
+        'hp': WFR.thp[:len(WFR.tt)],
+        's': WFR.ts[:len(WFR.tt)],
+        'husz': WFR.thusz[:len(WFR.tt)],
+        'hsz': WFR.thsz[:len(WFR.tt)],
+        'nsz': WFR.tnsz[:len(WFR.tt)],
+        'nusz': WFR.tnusz[:len(WFR.tt)],
+        'hszEST': WFR.thszEST[:len(WFR.tt)]
              }
     
     
