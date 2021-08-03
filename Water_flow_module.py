@@ -19,15 +19,15 @@ rodada = 'teste_1'
 ## All files should have the same length!!
 
 #Rainfall file
-Qrain_file = pd.read_csv('Qrain_file.csv')
+Qrain_file = pd.read_csv("D:\\OneDrive\\Mestrado\\TC\\Modelo Marina\\Model_original_marina\\Model_nitrogen_Marina\\mod_Kin\\Qrain_file.csv")
 tQrain = Qrain_file['Qrain'].tolist()
 
 #Evapotranspiration file  ## verificar unidade
-Emax_file = pd.read_csv('ET.csv')
+Emax_file = pd.read_csv("D:\\OneDrive\\Mestrado\\TC\\Modelo Marina\\Model_original_marina\\Model_nitrogen_Marina\\mod_Kin\\ET.csv")
 tEmax = Emax_file['ET'].tolist()
 
 #Inflow file
-Qin_file = pd.read_csv('inflow.csv')
+Qin_file = pd.read_csv("D:\\OneDrive\\Mestrado\\TC\\Modelo Marina\\Model_original_marina\\Model_nitrogen_Marina\\mod_Kin\\inflow.csv")
 tQin = Qin_file['Qin'].tolist()
 
 class WaterFlowResults:
