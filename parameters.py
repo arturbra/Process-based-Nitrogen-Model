@@ -215,6 +215,9 @@ class Nutrient:
         self.c_usz = [self.c0_usz]
         self.cs_usz = [self.c0_usz]
         self.c_sz = [self.c0_sz]
+        self.cl_i1 = []
+        self.csi_usz = []
+        self.Rxl = []
         self.cs_sz = [self.c0_sz]
         self.Rx_usz = [self.c0_usz]
         self.Rx_sz = [self.c0_sz]
@@ -266,6 +269,7 @@ class Ammonia(Nutrient):
         self.k_nh4_mb = float(setup['NH4']['k_nh4_mb'])
         self.Fm_nh4 = float(setup['NH4']['Fm_nh4'])
         self.Km_nh4 = float(setup['NH4']['Km_nh4'])
+
 
     def f_reaction_pz(self):
         return 0
