@@ -256,6 +256,15 @@ class Nutrient:
             cs = cs_abs
         return cs
 
+    def concentration_soil_phase_usz(self, usz_layer, time, teta, kads, ci, kdes, ro, dt, method="FO", kmicro=0, Um=0, Km=0):
+        self.cs = self.cs_usz[time][usz_layer]
+        cs_next_iteration = self.f_concentration_soil(self.cs, teta, kads, ci, kdes, ro, dt, method, kmicro, Um, Km)
+        if cs_next_iteration < 0.00000000000001:
+            cs_next_iteration = 0
+        return cs_next_iteration
+
+
+
 class Ammonia(Nutrient):
     def __init__(self, m_usz, m_sz, setup_file):
         super(Ammonia, self).__init__(m_usz, m_sz)
@@ -306,6 +315,9 @@ class Nitrate(Nutrient):
         reaction = -k_denit * C_no3_iminus1
         return reaction
 
+    def concentration_soil_phase_usz(self):
+        return 0
+
 
 class Oxygen(Nutrient):
     def __init__(self, m_usz, m_sz, setup_file):
@@ -326,6 +338,9 @@ class Oxygen(Nutrient):
     def f_reaction_sz(self, C_o2_iminus1, C_nh4_iminus1, k_nit):
         reaction = -self.k_o2 * C_o2_iminus1 - k_nit * C_nh4_iminus1 / 2
         return reaction
+
+    def concentration_soil_phase_usz(self):
+        return 0
 
 
 class DissolvedOrganicCarbon(Nutrient):
