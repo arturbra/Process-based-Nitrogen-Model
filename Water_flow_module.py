@@ -33,7 +33,7 @@ tQin = Qin_file['Qin'].tolist()
 
 ###  2. Definition of parameters
 
-setup_file = "tc_pf.ini"
+setup_file = "Water_flow_module.ini"
 setup = configparser.ConfigParser()
 setup.read(setup_file)
 
