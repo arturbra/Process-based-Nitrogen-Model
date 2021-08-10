@@ -55,10 +55,11 @@ class PondingZone:
         self.flagp = float(setup['PONDING_ZONE']['flagp'])
         self.k_denit_pz = float(setup['DENITRIFICATION']['k_denit_pz'])
 
-    def f_concentration(self, cin, Qin_p, cp_a, I1, Qv, Rxi, hp, hp_a, Ab, dt):
+    def f_concentration(self, cin, Qin_p, cp_a, I1, Qv, Rxi, hp, hp_a, Ab, dt, threshold):
         concentration = (cp_a * hp_a * Ab + (cin * Qin_p - cp_a * (I1 + Qv) + Rxi * hp * Ab) * dt) / (hp * Ab)
+        if concentration < threshold:
+            concentration = 0
         return concentration
-
 
 
 class UnsaturatedZone:
@@ -82,12 +83,34 @@ class UnsaturatedZone:
         beta = layer / (self.m_usz - 1)
         return alfa, beta
 
-    def f_unit_flux(self, alfa, beta, I1, Qet_1, I2, Qhc, Qorif, Qinf_sz, teta_sm_i, hpipe, Ab):
+
+    def f_unit_flux(self, l, Qpf, Qet_1, Qfs, Qhc, Qorif, Qinf_sz, teta_sm_i, Ab, hpipe):
+        """
+        Calculates the unit water flux at the USZ.
+        :param alfa: Boundary condition calculated by the falfa_beta_usz function
+        :param beta: Boundary condition calculated by the falfa_beta_usz function
+        :param Qpf: Defined as the infiltration to the USZ (tQpf) at the time t in
+        the run_Kin function. Could be changed to abbreviate the code.
+        :param Qet_1: Total evapotranspiration flux at the USZ (the one suffix is
+        the same as USZ)
+        :param Qfs: Defined as the infiltration to the SZ (tQfs) at the time t in
+        the run_Kin function. Could be changed to abbreviate the code.
+        :param Qhc: Capillary rise flow
+        :param Qorif: Defined as the drainage pipe flow at the time t in the run_kin
+        function. Could be changed to abbreviate the code.
+        :param Qinf_sz: Infiltration to bottom surrounding soil, in time i
+        :param teta_sm_i: Soil water fraction at the USZ. (Sm = soil mix)
+        :param Ab : Bioretention Area
+        :return UF_usz: Unit water flux at the USZ
+        """
+        alfa, beta = self.f_alfa_beta(l)
         if hpipe > 0:
-            unit_flux = (alfa * (I1 - Qet_1) + beta * (I2 - Qhc)) / (Ab * teta_sm_i)
+            unit_flux = (alfa * (Qpf - Qet_1) + beta * (Qfs - Qhc)) / (Ab * teta_sm_i)
         else:
-            unit_flux = (alfa * (I1 - Qet_1) + beta * (Qorif + Qinf_sz - Qhc)) / (Ab * teta_sm_i)
+            unit_flux = (alfa * (Qpf - Qet_1) + beta * (Qorif + Qinf_sz - Qhc)) / \
+                        (Ab * teta_sm_i)
         return unit_flux
+
 
     def f_peclet(self, unit_flux, D, dz):
         if D > 0:
@@ -201,13 +224,11 @@ class SoilPlant:
 
 class Nutrient:
     def __init__(self, m_usz, m_sz):
-        """
-        :param p: parameter object instantiated by the Parameter class .
-        """
         self.cp_a = 0
         self.cs_usz_a = 0
         self.cs_sz_a = 0
         self.cp = []
+        self.cpi = 0
         self.c0_usz = [0] * m_usz
         self.c0_sz = [0] * m_sz
         self.cs0_usz = [self.cs_usz_a] * m_usz
@@ -219,7 +240,9 @@ class Nutrient:
         self.csi_usz = []
         self.Rxl = []
         self.cs_sz = [self.c0_sz]
+        self.Rx_pz = 0
         self.Rx_usz = [self.c0_usz]
+        self.Rxi_usz = 0
         self.Rx_sz = [self.c0_sz]
         self.Mstor_ast_list = []  # O passo corretivo é feito com a massa, M indica a massa que vai ser usada no passo corretivo. Ast é asterisco.
         self.Msoil_acum = []  # massa em cada zona para poder calcular no balanço de massa
@@ -256,12 +279,53 @@ class Nutrient:
             cs = cs_abs
         return cs
 
+    def concentration_water_phase_usz(self, m_usz, layer):
+        if layer < (m_usz - 1):
+            clplus1 = self.cli[layer + 1]
+        else:
+            clplus1 = 0
+        return clplus1
+
     def concentration_soil_phase_usz(self, usz_layer, time, teta, kads, ci, kdes, ro, dt, method="FO", kmicro=0, Um=0, Km=0):
         self.cs = self.cs_usz[time][usz_layer]
         cs_next_iteration = self.f_concentration_soil(self.cs, teta, kads, ci, kdes, ro, dt, method, kmicro, Um, Km)
         if cs_next_iteration < 0.00000000000001:
             cs_next_iteration = 0
         return cs_next_iteration
+
+    def concentration_delta(self, peclet, layer, m_usz, dz, teta_usz, teta_sm_iplus1, uf, dt, ro, f, threshold):
+        if peclet <= 2:
+            if layer == 0:
+                dc = self.cliplus1 - 2 * self.cli[layer] + self.cpi
+                dc_dz = (self.cliplus1 - self.cpi) / (2 * dz)
+            elif layer == (m_usz - 1):
+                dc = self.cli[layer] - 2 * self.cli[layer] + self.cli[layer - 1]
+                dc_dz = (self.cli[layer] - self.cli[layer - 1]) / dz
+            else:
+                dc = self.cliplus1 - 2 * self.cli[layer] + self.cli[layer - 1]
+                dc_dz = (self.cliplus1 - self.cli[layer - 1]) / (2 * dz)
+        else:
+            if layer == 0:
+                dc = self.cliplus1 - 2 * self.cli[layer] + self.cpi
+                dc_dz = (self.cli[layer] - self.cpi) / dz
+            elif layer == (m_usz - 1):
+                dc = self.cli[layer] - 2 * self.cli[layer] + self.cli[layer - 1]
+                dc_dz = (self.cli[layer] - self.cli[layer - 1]) / dz
+            else:
+                dc = self.cliplus1 - 2 * self.cli[layer] + self.cli[layer - 1]
+                dc_dz = (self.cli[layer] - self.cli[layer - 1]) / dz
+
+        delta_concentration = self.f_transport(teta_usz, teta_sm_iplus1, self.cli[layer], self.cs, dc, dc_dz,
+                                               self.kads, self.kdes, self.D, uf, self.Rxi_usz, dt, ro, f, dz)
+        if teta_sm_iplus1 > 0:
+            concentration = self.cli[layer] + delta_concentration
+        else:
+            concentration = 0
+
+        if concentration <= threshold:
+            concentration = 0
+
+        return concentration
 
 
 
@@ -270,11 +334,11 @@ class Ammonia(Nutrient):
         super(Ammonia, self).__init__(m_usz, m_sz)
         setup = configparser.ConfigParser()
         setup.read(setup_file)
-        self.D_nh4 = float(setup['NH4']['D_nh4'])
-        self.kads_nh4 = float(setup['NH4']['kads_nh4'])
-        self.kdes_nh4 = float(setup['NH4']['kdes_nh4'])
-        self.kads2_nh4 = float(setup['NH4']['kads2_nh4'])
-        self.kdes2_nh4 = float(setup['NH4']['kdes2_nh4'])
+        self.D = float(setup['NH4']['D_nh4'])
+        self.kads = float(setup['NH4']['kads_nh4'])
+        self.kdes = float(setup['NH4']['kdes_nh4'])
+        self.kads2 = float(setup['NH4']['kads2_nh4'])
+        self.kdes2 = float(setup['NH4']['kdes2_nh4'])
         self.k_nh4_mb = float(setup['NH4']['k_nh4_mb'])
         self.Fm_nh4 = float(setup['NH4']['Fm_nh4'])
         self.Km_nh4 = float(setup['NH4']['Km_nh4'])
@@ -295,9 +359,11 @@ class Nitrate(Nutrient):
         super(Nitrate, self).__init__(m_usz, m_sz)
         setup = configparser.ConfigParser()
         setup.read(setup_file)
-        self.D_no3 = float(setup['NO3']['D_no3'])
+        self.D = float(setup['NO3']['D_no3'])
         self.Fm_no3 = float(setup['NO3']['Fm_no3'])
         self.Km_no3 = float(setup['NO3']['Km_no3'])
+        self.kads = 0
+        self.kdes = 0
 
     def f_reaction_pz(self):
         return 0
@@ -324,9 +390,11 @@ class Oxygen(Nutrient):
         super(Oxygen, self).__init__(m_usz, m_sz)
         setup = configparser.ConfigParser()
         setup.read(setup_file)
-        self.D_o2 = float(setup['O2']['D_o2'])
+        self.D = float(setup['O2']['D_o2'])
         self.K_o2 = float(setup['O2']['k_inib_o2'])  # perguntar pq K no lugar de k_inib_02
         self.k_o2 = float(setup['O2']['k_o2'])
+        self.kads = 0
+        self.kdes = 0
         
     def f_reaction_pz(self):
         return 0
@@ -348,13 +416,13 @@ class DissolvedOrganicCarbon(Nutrient):
         super(DissolvedOrganicCarbon, self).__init__(m_usz, m_sz)
         setup = configparser.ConfigParser()
         setup.read(setup_file)
-        self.D_doc = float(setup['DOC']['D_doc'])
+        self.D = float(setup['DOC']['D_doc'])
         self.fb_doc = float(setup['DOC']['fb_doc'])
         self.bDOCd = float(setup['DOC']['bDOCd'])
         self.KbDOC = float(setup['DOC']['KbDOC'])
         self.k_doc = float(setup['DOC']['k_doc'])
-        self.kads_doc = float(setup['DOC']['kads_doc'])
-        self.kdes_doc = float(setup['DOC']['kdes_doc'])
+        self.kads = float(setup['DOC']['kads_doc'])
+        self.kdes = float(setup['DOC']['kdes_doc'])
         self.kads2_doc = float(setup['DOC']['kads2_doc'])
         self.kdes2_doc = float(setup['DOC']['kdes2_doc'])
         self.k_doc_mb = float(setup['DOC']['k_doc_mb'])
