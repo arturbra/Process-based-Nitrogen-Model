@@ -85,24 +85,6 @@ class UnsaturatedZone:
 
 
     def f_unit_flux(self, l, Qpf, Qet_1, Qfs, Qhc, Qorif, Qinf_sz, teta_sm_i, Ab, hpipe):
-        """
-        Calculates the unit water flux at the USZ.
-        :param alfa: Boundary condition calculated by the falfa_beta_usz function
-        :param beta: Boundary condition calculated by the falfa_beta_usz function
-        :param Qpf: Defined as the infiltration to the USZ (tQpf) at the time t in
-        the run_Kin function. Could be changed to abbreviate the code.
-        :param Qet_1: Total evapotranspiration flux at the USZ (the one suffix is
-        the same as USZ)
-        :param Qfs: Defined as the infiltration to the SZ (tQfs) at the time t in
-        the run_Kin function. Could be changed to abbreviate the code.
-        :param Qhc: Capillary rise flow
-        :param Qorif: Defined as the drainage pipe flow at the time t in the run_kin
-        function. Could be changed to abbreviate the code.
-        :param Qinf_sz: Infiltration to bottom surrounding soil, in time i
-        :param teta_sm_i: Soil water fraction at the USZ. (Sm = soil mix)
-        :param Ab : Bioretention Area
-        :return UF_usz: Unit water flux at the USZ
-        """
         alfa, beta = self.f_alfa_beta(l)
         if hpipe > 0:
             unit_flux = (alfa * (Qpf - Qet_1) + beta * (Qfs - Qhc)) / (Ab * teta_sm_i)
@@ -133,8 +115,9 @@ class SaturatedZone:
         beta = layer / (self.m_sz - 1)
         return alfa, beta
 
-    def f_unit_flux(self, alfa, beta, I2, Qhc, Qet_2, Qorif, Qinf_sz, teta_b_i, Ab):
-        unit_flux = (alfa * (I2 - Qhc - Qet_2) + beta * (Qorif + Qinf_sz)) / (Ab * teta_b_i)
+    def f_unit_flux(self, sz_layer, Qfs, Qhc, Qet_2, Qorif, Qinf_sz, teta_b_i, Ab):
+        alfa, beta = self.f_alfa_beta(sz_layer)
+        unit_flux = (alfa * (Qfs - Qhc - Qet_2) + beta * (Qorif + Qinf_sz)) / (Ab * teta_b_i)
         return unit_flux
 
     def f_peclet(self, unit_flux, D, dz):
@@ -143,8 +126,6 @@ class SaturatedZone:
         else:
             peclet = 100
         return peclet
-
-
 
 
 class Calibration:
@@ -286,39 +267,53 @@ class Nutrient:
             clplus1 = 0
         return clplus1
 
-    def concentration_soil_phase_usz(self, usz_layer, time, teta, kads, ci, kdes, ro, dt, method="FO", kmicro=0, Um=0, Km=0):
+    def concentration_water_phase_sz(self, m_sz, layer):
+        if layer < (m_sz - 1):
+            cjplus1 = self.cji[layer + 1]
+        else:
+            cjplus1 = 0
+        return cjplus1
+
+    def concentration_soil_phase_usz(self, usz_layer, time, teta, ci, ro, dt, threshold, method="FO", kmicro=0, Um=0, Km=0):
         self.cs = self.cs_usz[time][usz_layer]
-        cs_next_iteration = self.f_concentration_soil(self.cs, teta, kads, ci, kdes, ro, dt, method, kmicro, Um, Km)
-        if cs_next_iteration < 0.00000000000001:
+        cs_next_iteration = self.f_concentration_soil(self.cs, teta, self.kads, ci, self.kdes, ro, dt, method, kmicro, Um, Km)
+        if cs_next_iteration < threshold:
             cs_next_iteration = 0
         return cs_next_iteration
 
-    def concentration_delta(self, peclet, layer, m_usz, dz, teta_usz, teta_sm_iplus1, uf, dt, ro, f, threshold):
-        if peclet <= 2:
-            if layer == 0:
-                dc = self.cliplus1 - 2 * self.cli[layer] + self.cpi
-                dc_dz = (self.cliplus1 - self.cpi) / (2 * dz)
-            elif layer == (m_usz - 1):
-                dc = self.cli[layer] - 2 * self.cli[layer] + self.cli[layer - 1]
-                dc_dz = (self.cli[layer] - self.cli[layer - 1]) / dz
-            else:
-                dc = self.cliplus1 - 2 * self.cli[layer] + self.cli[layer - 1]
-                dc_dz = (self.cliplus1 - self.cli[layer - 1]) / (2 * dz)
-        else:
-            if layer == 0:
-                dc = self.cliplus1 - 2 * self.cli[layer] + self.cpi
-                dc_dz = (self.cli[layer] - self.cpi) / dz
-            elif layer == (m_usz - 1):
-                dc = self.cli[layer] - 2 * self.cli[layer] + self.cli[layer - 1]
-                dc_dz = (self.cli[layer] - self.cli[layer - 1]) / dz
-            else:
-                dc = self.cliplus1 - 2 * self.cli[layer] + self.cli[layer - 1]
-                dc_dz = (self.cli[layer] - self.cli[layer - 1]) / dz
+    def concentration_soil_phase_sz(self, sz_layer, time, teta, ci, ro, dt, threshold, method= "FO", kmicro = 0, Um=0, Km=0):
+        self.cs =self.cs_sz[time][sz_layer]
+        cs_next_iteration = self.f_concentration_soil(self.cs, teta, self.kads2, ci, self.kdes2, ro, dt, method, kmicro, Um, Km)
+        if cs_next_iteration < threshold:
+            cs_next_iteration = 0
+        return(cs_next_iteration)
 
-        delta_concentration = self.f_transport(teta_usz, teta_sm_iplus1, self.cli[layer], self.cs, dc, dc_dz,
+    def concentration_delta_usz(self, peclet, usz_layer, m_usz, dz, teta_usz, teta_sm_iplus1, uf, dt, ro, f, threshold):
+        if peclet <= 2:
+            if usz_layer == 0:
+                dc = self.cliplus1 - 2 * self.cli[usz_layer] + self.cpi
+                dc_dz = (self.cliplus1 - self.cpi) / (2 * dz)
+            elif usz_layer == (m_usz - 1):
+                dc = self.cli[usz_layer] - 2 * self.cli[usz_layer] + self.cli[usz_layer - 1]
+                dc_dz = (self.cli[usz_layer] - self.cli[usz_layer - 1]) / dz
+            else:
+                dc = self.cliplus1 - 2 * self.cli[usz_layer] + self.cli[usz_layer - 1]
+                dc_dz = (self.cliplus1 - self.cli[usz_layer - 1]) / (2 * dz)
+        else:
+            if usz_layer == 0:
+                dc = self.cliplus1 - 2 * self.cli[usz_layer] + self.cpi
+                dc_dz = (self.cli[usz_layer] - self.cpi) / dz
+            elif usz_layer == (m_usz - 1):
+                dc = self.cli[usz_layer] - 2 * self.cli[usz_layer] + self.cli[usz_layer - 1]
+                dc_dz = (self.cli[usz_layer] - self.cli[usz_layer - 1]) / dz
+            else:
+                dc = self.cliplus1 - 2 * self.cli[usz_layer] + self.cli[usz_layer - 1]
+                dc_dz = (self.cli[usz_layer] - self.cli[usz_layer - 1]) / dz
+
+        delta_concentration = self.f_transport(teta_usz, teta_sm_iplus1, self.cli[usz_layer], self.cs, dc, dc_dz,
                                                self.kads, self.kdes, self.D, uf, self.Rxi_usz, dt, ro, f, dz)
         if teta_sm_iplus1 > 0:
-            concentration = self.cli[layer] + delta_concentration
+            concentration = self.cli[usz_layer] + delta_concentration
         else:
             concentration = 0
 
@@ -326,6 +321,69 @@ class Nutrient:
             concentration = 0
 
         return concentration
+
+    def concentration_delta_sz(self, m_usz, m_sz, n, peclet, sz_layer, dz, teta_sz, teta_b_iplus1, uf, dt, ro, f, threshold):
+        if m_usz < (n - 1):
+            if peclet <= 2:
+                if sz_layer == 0:
+                    dc = self.cjplus1 - 2 * self.cji[sz_layer] + self. cli[m_usz - 1]
+                    dc_dz = (self.cjplus1 - self.cli[m_usz - 1]) / (2 * dz)
+                elif sz_layer == (m_sz - 1):
+                    dc = self.cji[sz_layer] - 2 * self.cji[sz_layer] + self.cji[sz_layer - 1]
+                    dc_dz = (self.cji[sz_layer] - self.cji[sz_layer - 1]) / dz
+                else:
+                    dc = self.cjplus1 - 2 * self.cji[sz_layer] + self.cji[sz_layer - 1]
+                    dc_dz = (self.cjplus1 - self.cji[sz_layer - 1]) / (2 * dz)
+            else:
+                if sz_layer == 0:
+                    dc = self.cjplus1 - 2 * self.cji[sz_layer] + self.cli[m_usz - 1]
+                    dc_dz = (self.cji[sz_layer] - self.cli[m_usz - 1]) / dz
+                elif sz_layer == (m_sz - 1):
+                    dc = self.cji[sz_layer] - 2 * self.cji[sz_layer] + self.cji[sz_layer - 1]
+                    dc_dz = (self.cji[sz_layer] - self.cji[sz_layer - 1]) / dz
+                else:
+                    dc = self.cjplus1 - 2 * self.cji[sz_layer] + self.cji[sz_layer - 1]
+                    dc_dz = (self.cji[sz_layer] - self.cji[sz_layer - 1]) / dz
+                    
+        if m_usz == (n - 1):
+            dc = self.cji[sz_layer] - 2 * self.cji[sz_layer] + self.cji[sz_layer - 1]
+            dc_dz = (self.cji[sz_layer] - self.cji[sz_layer - 1]) / (2 * dz)
+        
+        if m_usz == 0:
+            if peclet <= 2:
+                if sz_layer == 0:
+                    dc = self.cjplus1 - 2 * self.cji[sz_layer] + self.cpi
+                    dc_dz = (self.cjplus1 - self.cpi) / (2 * dz)
+                elif sz_layer == (m_sz - 1):
+                    dc = self.cji[sz_layer] - 2 * self.cji[sz_layer] + self.cji[sz_layer - 1]
+                    dc_dz = (self.cji[sz_layer] - self.cji[sz_layer - 1]) / dz
+                else:
+                    dc = self.cjplus1 - 2 * self.cji[sz_layer] + self.cji[sz_layer - 1]
+                    dc_dz = (self.cjplus1 - self.cji[sz_layer - 1]) / (2 * dz)
+            else: 
+                if sz_layer == 0:  # first cell
+                    dc = self.cjplus1 - 2 * self.cji[sz_layer] + self.cpi
+                    dc_dz = (self.cji[sz_layer] - self.cpi) / dz
+
+                elif sz_layer == (SZ.m_sz - 1):  # last cell
+                    dc = self.cji[sz_layer] - 2 * self.cji[sz_layer] + self.cji[sz_layer - 1]
+                    dc_dz = (self.cji[sz_layer] - self.cji[sz_layer - 1]) / dz
+
+                else:
+                    dc = self.cjplus1 - 2 * self.cji[sz_layer] + self.cji[sz_layer - 1]
+                    dc_dz = (self.cji[sz_layer] - self.cji[sz_layer - 1]) / dz
+        delta_concentration = self.f_transport(teta_sz, teta_b_iplus1, self.cji[sz_layer], self.cs, dc, dc_dz,
+                                               self.kads, self.kdes, self.D, uf, self.Rxi_sz, dt, ro, f, dz)
+        if teta_b_iplus1 > 0:
+            concentration = self.cji[sz_layer] + delta_concentration
+        else:
+            concentration = 0
+
+        if concentration <= threshold:
+            concentration = 0
+
+        return concentration
+
 
 
 
@@ -410,6 +468,10 @@ class Oxygen(Nutrient):
     def concentration_soil_phase_usz(self):
         return 0
 
+    def concentration_soil_phase_sz(self):
+        return 0
+
+
 
 class DissolvedOrganicCarbon(Nutrient):
     def __init__(self, m_usz, m_sz, setup_file):
@@ -423,8 +485,8 @@ class DissolvedOrganicCarbon(Nutrient):
         self.k_doc = float(setup['DOC']['k_doc'])
         self.kads = float(setup['DOC']['kads_doc'])
         self.kdes = float(setup['DOC']['kdes_doc'])
-        self.kads2_doc = float(setup['DOC']['kads2_doc'])
-        self.kdes2_doc = float(setup['DOC']['kdes2_doc'])
+        self.kads2 = float(setup['DOC']['kads2_doc'])
+        self.kdes2 = float(setup['DOC']['kdes2_doc'])
         self.k_doc_mb = float(setup['DOC']['k_doc_mb'])
         
     def f_reaction_pz(self):

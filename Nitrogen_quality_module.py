@@ -78,7 +78,7 @@ def run_Kin():
         DOC.cli = DOC.c_usz[t].copy()
         
         #SZ
-        if hpipe > 0:
+        if GENERAL_PARAMETERS.hpipe > 0:
             O2.cji = O2.c_sz[t].copy()
             NH4.cji = NH4.c_sz[t].copy()
             NO3.cji = NO3.c_sz[t].copy()
@@ -108,12 +108,12 @@ def run_Kin():
                 DOC.cliplus1 = DOC.concentration_water_phase_usz(USZ.m_usz, l)
                 #since we have added an initial value of cs = 0 in the NH4.cs_usz list, when calling the index equal = 't' we are actually calling the value corresponding to t-1
                 O2.cs = O2.concentration_soil_phase_usz()
-                NH4.csi_usz.append(NH4.concentration_soil_phase_usz(l, t, WFR.tteta_usz[t], NH4.kads, NH4.cli[l], NH4.kdes, SOIL_PLANT.ro, GENERAL_PARAMETERS.dt, kmicro=NH4.k_nh4_mb))
+                NH4.csi_usz.append(NH4.concentration_soil_phase_usz(l, t, WFR.tteta_usz[t], NH4.cli[l], SOIL_PLANT.ro, GENERAL_PARAMETERS.dt, 0.00000000000001, kmicro=NH4.k_nh4_mb))
                 NO3.cs = NO3.concentration_soil_phase_usz()
-                DOC.csi_usz.append(DOC.concentration_soil_phase_usz(l, t, WFR.tteta_usz[t], DOC.kads, DOC.cli[l], DOC.kdes, SOIL_PLANT.ro, GENERAL_PARAMETERS.dt, kmicro=DOC.k_doc_mb))
+                DOC.csi_usz.append(DOC.concentration_soil_phase_usz(l, t, WFR.tteta_usz[t], DOC.cli[l], SOIL_PLANT.ro, GENERAL_PARAMETERS.dt, 0.00000000000001, kmicro=DOC.k_doc_mb))
                 DOC.cs_usz_a = DOC.cs_usz[t][l]
 
-                unit_flux = USZ.f_unit_flux(l, WFR.tQpf[t], WFR.tQet1[t], WFR.tQfs[t], WFR.tQhc[t], Qorif, WFR.tQinfsz[t], WFR.tteta_usz[t], PZ.Ab, hpipe)
+                USZ.unit_flux = USZ.f_unit_flux(l, WFR.tQpf[t], WFR.tQet1[t], WFR.tQfs[t], WFR.tQhc[t], Qorif, WFR.tQinfsz[t], WFR.tteta_usz[t], PZ.Ab, GENERAL_PARAMETERS.hpipe)
 
                 O2.Rxi_usz = O2.f_reaction_usz(O2.cli[l], NH4.cli[l], GENERAL_PARAMETERS.k_nit) + SOIL_PLANT.f_plant_uptake_usz(O2.cli[l], WFR.tteta_usz[t], "O2")
                 NH4.Rxi_usz = NH4.f_reaction_usz(NH4.cli[l], GENERAL_PARAMETERS.k_nit) + SOIL_PLANT.f_plant_uptake_usz(NH4.cli[l], WFR.tteta_usz[t], "NH4", NH4.Fm_nh4, NH4.Km_nh4)
@@ -126,418 +126,88 @@ def run_Kin():
                 DOC.Rxl.append(DOC.Rxi_usz * (1 / teta_sm_iplus1) * GENERAL_PARAMETERS.dt)
 
     ### Oxygen
-                peclet = USZ.f_peclet(unit_flux, O2.D, GENERAL_PARAMETERS.dz)
-                concentration = O2.concentration_delta(peclet, l, USZ.m_usz, GENERAL_PARAMETERS.dz, WFR.tteta_usz[t], teta_sm_iplus1, unit_flux, GENERAL_PARAMETERS.dt, SOIL_PLANT.ro, SOIL_PLANT.f, 0.0000000000000001)
+                O2.peclet_usz = USZ.f_peclet(USZ.unit_flux, O2.D, GENERAL_PARAMETERS.dz)
+                concentration = O2.concentration_delta_usz(O2.peclet_usz, l, USZ.m_usz, GENERAL_PARAMETERS.dz, WFR.tteta_usz[t], teta_sm_iplus1, USZ.unit_flux, GENERAL_PARAMETERS.dt, SOIL_PLANT.ro, SOIL_PLANT.f, 0.0000000000000001)
                 O2.cl_i1.append(concentration)
 
     ### Amonia
-                peclet = USZ.f_peclet(unit_flux, NH4.D, GENERAL_PARAMETERS.dz)
-                concentration = NH4.concentration_delta(peclet, l, USZ.m_usz, GENERAL_PARAMETERS.dz, WFR.tteta_usz[t], teta_sm_iplus1, unit_flux, GENERAL_PARAMETERS.dt, SOIL_PLANT.ro, SOIL_PLANT.f, 0.0000000000000001)
+                NH4.peclet_usz = USZ.f_peclet(USZ.unit_flux, NH4.D, GENERAL_PARAMETERS.dz)
+                concentration = NH4.concentration_delta_usz(NH4.peclet_usz, l, USZ.m_usz, GENERAL_PARAMETERS.dz, WFR.tteta_usz[t], teta_sm_iplus1, USZ.unit_flux, GENERAL_PARAMETERS.dt, SOIL_PLANT.ro, SOIL_PLANT.f, 0.0000000000000001)
                 NH4.cl_i1.append(concentration)
 
     ### Nitrate
-                peclet = USZ.f_peclet(unit_flux, NO3.D, GENERAL_PARAMETERS.dz)
-                concentration = NO3.concentration_delta(peclet, l, USZ.m_usz, GENERAL_PARAMETERS.dz, WFR.tteta_usz[t], teta_sm_iplus1, unit_flux, GENERAL_PARAMETERS.dt, SOIL_PLANT.ro, SOIL_PLANT.f, 0.0000000000000001)
+                NO3.peclet_usz = USZ.f_peclet(USZ.unit_flux, NO3.D, GENERAL_PARAMETERS.dz)
+                concentration = NO3.concentration_delta_usz(NO3.peclet_usz, l, USZ.m_usz, GENERAL_PARAMETERS.dz, WFR.tteta_usz[t], teta_sm_iplus1, USZ.unit_flux, GENERAL_PARAMETERS.dt, SOIL_PLANT.ro, SOIL_PLANT.f, 0.0000000000000001)
                 NO3.cl_i1.append(concentration)
 
     ### DOC
-                peclet = USZ.f_peclet(unit_flux, DOC.D, GENERAL_PARAMETERS.dz)
-                concentration = DOC.concentration_delta(peclet, l, USZ.m_usz, GENERAL_PARAMETERS.dz, WFR.tteta_usz[t], teta_sm_iplus1, unit_flux, GENERAL_PARAMETERS.dt, SOIL_PLANT.ro, SOIL_PLANT.f, 0.0000000000000001)
+                DOC.peclet_usz = USZ.f_peclet(USZ.unit_flux, DOC.D, GENERAL_PARAMETERS.dz)
+                concentration = DOC.concentration_delta_usz(DOC.peclet_usz, l, USZ.m_usz, GENERAL_PARAMETERS.dz, WFR.tteta_usz[t], teta_sm_iplus1, USZ.unit_flux, GENERAL_PARAMETERS.dt, SOIL_PLANT.ro, SOIL_PLANT.f, 0.0000000000000001)
                 DOC.cl_i1.append(concentration)
 
     #####   SZ   #####
 
-            cj_i1_o2 = []
-            Rxj_o2 = []
-
-            cj_i1_nh4 = []
-            csi_sz_nh4 = []
-            Rxj_nh4 = []
-
-            cj_i1_no3 = []
-            Rxj_no3 = []
-
-            cj_i1_doc = []
-            csi_sz_doc = []
-            Rxj_doc = []
-
-            for j in range(SZ.m_sz):
-#                 if teta_b_iplus1 > 0:
-#                     den_teta = 1/teta_b_iplus1
-#                 else:
-#                     den_teta = 0
-
-                cj_o2 = O2.cji[j]
-                cjminus1_o2 = O2.cji[j-1]
-                if j < (SZ.m_sz - 1):
-                    cjplus1_o2 = O2.cji[j+1]
-                else:
-                    cjplus1_o2 = 0
-                cmminus1_o2 = O2.cli[USZ.m_usz-1]
-
-                cj_nh4 = NH4.cji[j]
-                cjminus1_nh4 = NH4.cji[j-1]
-                if j < (SZ.m_sz - 1):
-                    cjplus1_nh4 = NH4.cji[j+1]
-                else:
-                    cjplus1_nh4 = 0
-                cmminus1_nh4 = NH4.cli[USZ.m_usz-1]
-
-                cj_no3 = NO3.cji[j]
-                cjminus1_no3 = NO3.cji[j-1]
-                if j < (SZ.m_sz - 1):
-                    cjplus1_no3 = NO3.cji[j+1]
-                else:
-                    cjplus1_no3 = 0
-                cmminus1_no3 = NO3.cli[USZ.m_usz-1]
-
-                cj_doc = DOC.cji[j]
-                cjminus1_doc = DOC.cji[j-1]
-                if j < (SZ.m_sz - 1):
-                    cjplus1_doc = DOC.cji[j+1]
-                else:
-                    cjplus1_doc = 0
-                cmminus1_doc = DOC.cli[USZ.m_usz-1]
-
-                O2.cs = 0
-
-                NH4.cs_sz_a = NH4.cs_sz[t][j]
-                NH4.cs = NH4.f_concentration_soil(NH4.cs_sz_a, WFR.tteta_sz[t], kads2_nh4, cj_nh4, kdes2_nh4, SOIL_PLANT.ro, GENERAL_PARAMETERS.dt, kmicro=NH4.k_nh4_mb)
-                csi_sz_nh4.append(NH4.cs)
-                if NH4.cs < 0.00000000000001:
-                    NH4.cs = 0
-
-                NO3.cs = 0
-
-                DOC.cs_sz_a = DOC.cs_sz[t][j]
-                DOC.cs = DOC.f_concentration_soil(DOC.cs_sz_a, WFR.tteta_sz[t], kads2_doc, cj_doc, kdes2_doc, kmicro=DOC.k_doc_mb)
-                csi_sz_doc.append(DOC.cs)
-
-                UF_sz = []
-                alfa, beta = SZ.f_alfa_beta(j)
-                #WFR.tQet2[t] = 0
-                UFi_sz = SZ.f_unit_flux(alfa, beta, WFR.tQfs[t], WFR.tQhc[t], WFR.tQet2[t], Qorif, WFR.tQinfsz[t], WFR.tteta_sz[t], PZ.Ab)
-
-                UF_sz.append(UFi_sz)
-
-                Rxi_3_o2 = O2.f_reaction_sz(cj_o2, cj_nh4, GENERAL_PARAMETERS.k_nit) + SOIL_PLANT.f_plant_uptake_sz(cj_o2, WFR.tteta_sz[t], "O2")
-                Rxi_3_nh4 = NH4.f_reaction_sz() + SOIL_PLANT.f_plant_uptake_sz(cj_nh4, WFR.tteta_sz[t], "NH4", NH4.Fm_nh4, NH4.Km_nh4)
-                Rxi_3_no3 = NO3.f_reaction_sz(cj_no3, cj_o2, cj_doc, GENERAL_PARAMETERS.k_denit) + SOIL_PLANT.f_plant_uptake_sz(cj_no3, WFR.tteta_sz[t], "NO3", NO3.Fm_no3, NO3.Km_no3)
-                Rxi_3_doc = DOC.f_reaction_sz(cj_doc)
-
-                Rxj_o2.append(Rxi_3_o2*(1/teta_b_iplus1)*dt)
-                Rxj_nh4.append(Rxi_3_nh4*(1/teta_b_iplus1)*dt)
-                Rxj_no3.append(Rxi_3_no3*(1/teta_b_iplus1)*dt)
-                Rxj_doc.append(Rxi_3_doc*(1/teta_b_iplus1)*dt)
-
-    ### Oxygen
-                Pesz_o2 = SZ.f_peclet(UFi_sz, O2.D, GENERAL_PARAMETERS.dz)
-
-                if USZ.m_usz < (n-1):
-                    if Pesz_o2 <= 2:
-                        if j == 0: #first cell
-                            dc_o2 = cjplus1_o2 - 2*cj_o2 + cmminus1_o2
-                            dc_dz_o2 = (cjplus1_o2 - cmminus1_o2)/(2*GENERAL_PARAMETERS.dz)
-
-                        elif j == (SZ.m_sz - 1): #last cell
-                            dc_o2 = cj_o2 - 2*cj_o2 + cjminus1_o2
-                            dc_dz_o2 = (cj_o2 - cjminus1_o2)/GENERAL_PARAMETERS.dz
-
-                        else:
-                            dc_o2 = cjplus1_o2 - 2*cj_o2 + cjminus1_o2
-                            dc_dz_o2 = (cjplus1_o2 - cjminus1_o2)/(2*GENERAL_PARAMETERS.dz)
-
-                    else: #Pesz > 2
-                        if j == 0: #first cell
-                            dc_o2 = cjplus1_o2 - 2*cj_o2 + cmminus1_o2
-                            dc_dz_o2 = (cj_o2 - cmminus1_o2)/GENERAL_PARAMETERS.dz
-
-                        elif j == (SZ.m_sz - 1): #last cell
-                            dc_o2 = cj_o2 - 2*cj_o2 + cjminus1_o2
-                            dc_dz_o2 = (cj_o2 - cjminus1_o2)/GENERAL_PARAMETERS.dz
-
-                        else:
-                            dc_o2 = cjplus1_o2 - 2*cj_o2 + cjminus1_o2
-                            dc_dz_o2 = (cj_o2 - cjminus1_o2)/GENERAL_PARAMETERS.dz
-
-
-                if USZ.m_usz == (n - 1):
-                    dc_o2 = cj_o2 - 2*cj_o2 + cjminus1_o2
-                    dc_dz_o2 = (cj_o2 - cjminus1_o2)/(2*GENERAL_PARAMETERS.dz)
-
-                if USZ.m_usz == 0:
-                    if Pesz_o2 <= 2:
-                        if j == 0: #first cell
-                            dc_o2 = cjplus1_o2 - 2*cj_o2 + O2.cpi
-                            dc_dz_o2 = (cjplus1_o2 - O2.cpi)/(2*GENERAL_PARAMETERS.dz)
-
-                        elif j == (SZ.m_sz - 1): #last cell
-                            dc_o2 = cj_o2 - 2*cj_o2 + cjminus1_o2
-                            dc_dz_o2 = (cj_o2 - cjminus1_o2)/GENERAL_PARAMETERS.dz
-
-                        else:
-                            dc_o2 = cjplus1_o2 - 2*cj_o2 + cjminus1_o2
-                            dc_dz_o2 = (cjplus1_o2 - cjminus1_o2)/(2*GENERAL_PARAMETERS.dz)
-
-                    else: #Pusz > 2
-                        if j == 0: #first cell
-                            dc_o2 = cjplus1_o2 - 2*cj_o2 + O2.cpi
-                            dc_dz_o2 = (cj_o2 - O2.cpi)/GENERAL_PARAMETERS.dz
-
-                        elif j == (SZ.m_sz - 1): #last cell
-                            dc_o2 = cj_o2 - 2*cj_o2 + cjminus1_o2
-                            dc_dz_o2 = (cj_o2 - cjminus1_o2)/GENERAL_PARAMETERS.dz
-
-                        else:
-                            dc_o2 = cjplus1_o2 - 2*cj_o2 + cjminus1_o2
-                            dc_dz_o2 = (cj_o2 - cjminus1_o2)/GENERAL_PARAMETERS.dz
-
-                delta_c_o2 = O2.f_transport(WFR.tteta_sz[t], teta_b_iplus1, cj_o2, O2.cs, dc_o2, dc_dz_o2, 0, 0, O2.D, UFi_sz, Rxi_3_o2, GENERAL_PARAMETERS.dt, SOIL_PLANT.ro, SOIL_PLANT.f, GENERAL_PARAMETERS.dz)
-                if teta_b_iplus1 > 0:
-                    ci1_o2 = cj_o2 + delta_c_o2
-                else:
-                    ci1_o2 = 0
-
-                if ci1_o2 <= 0.0000000000000001:
-                    ci1_o2 = 0
-                else:
-                    ci1_o2 = ci1_o2
-
-                cj_i1_o2.append(ci1_o2)
-
-
-    ### Amonia
-                Pesz_nh4 = SZ.f_peclet(UFi_sz, NH4.D, GENERAL_PARAMETERS.dz)
-
-                if USZ.m_usz < (n-1):
-                    if Pesz_nh4 <= 2:
-                        if j == 0: #first cell
-                            dc_nh4 = cjplus1_nh4 - 2*cj_nh4 + cmminus1_nh4
-                            dc_dz_nh4 = (cjplus1_nh4 - cmminus1_nh4)/(2*GENERAL_PARAMETERS.dz)
-
-                        elif j == (SZ.m_sz - 1): #last cell
-                            dc_nh4 = cj_nh4 - 2*cj_nh4 + cjminus1_nh4
-                            dc_dz_nh4 = (cj_nh4 - cjminus1_nh4)/GENERAL_PARAMETERS.dz
-
-                        else:
-                            dc_nh4 = cjplus1_nh4 - 2*cj_nh4 + cjminus1_nh4
-                            dc_dz_nh4 = (cjplus1_nh4 - cjminus1_nh4)/(2*GENERAL_PARAMETERS.dz)
-
-                    else: #Pesz > 2
-                        if j == 0: #first cell
-                            dc_nh4 = cjplus1_nh4 - 2*cj_nh4 + cmminus1_nh4
-                            dc_dz_nh4 = (cj_nh4 - cmminus1_nh4)/GENERAL_PARAMETERS.dz
-
-                        elif j == (SZ.m_sz - 1): #last cell
-                            dc_nh4 = cj_nh4 - 2*cj_nh4 + cjminus1_nh4
-                            dc_dz_nh4 = (cj_nh4 - cjminus1_nh4)/GENERAL_PARAMETERS.dz
-
-                        else:
-                            dc_nh4 = cjplus1_nh4 - 2*cj_nh4 + cjminus1_nh4
-                            dc_dz_nh4 = (cj_nh4 - cjminus1_nh4)/GENERAL_PARAMETERS.dz
-
-
-                if USZ.m_usz == (n - 1):
-                    dc_nh4 = cj_nh4 - 2*cj_nh4 + cjminus1_nh4
-                    dc_dz_nh4 = (cj_nh4 - cjminus1_nh4)/(2*GENERAL_PARAMETERS.dz)
-
-                if USZ.m_usz == 0:
-                    if Pesz_nh4 <= 2:
-                        if j == 0: #first cell
-                            dc_nh4 = cjplus1_nh4 - 2*cj_nh4 + NH4.cpi
-                            dc_dz_nh4 = (cjplus1_nh4 - NH4.cpi)/(2*GENERAL_PARAMETERS.dz)
-
-                        elif j == (SZ.m_sz -1): #last cell
-                            dc_nh4 = cj_nh4 - 2*cj_nh4 + cjminus1_nh4
-                            dc_dz_nh4 = (cj_nh4 - cjminus1_nh4)/GENERAL_PARAMETERS.dz
-
-                        else:
-                            dc_nh4 = cjplus1_nh4 - 2*cj_nh4 + cjminus1_nh4
-                            dc_dz_nh4 = (cjplus1_nh4 - cjminus1_nh4)/(2*GENERAL_PARAMETERS.dz)
-
-                    else: #Pusz > 2
-                        if j == 0: #first cell
-                            dc_nh4 = cjplus1_nh4 - 2*cj_nh4 + NH4.cpi
-                            dc_dz_nh4 = (cj_nh4 - NH4.cpi)/GENERAL_PARAMETERS.dz
-
-                        elif j == (SZ.m_sz - 1): #last cell
-                            dc_nh4 = cj_nh4 - 2*cj_nh4 + cjminus1_nh4
-                            dc_dz_nh4 = (cj_nh4 - cjminus1_nh4)/GENERAL_PARAMETERS.dz
-
-                        else:
-                            dc_nh4 = cjplus1_nh4 - 2*cj_nh4 + cjminus1_nh4
-                            dc_dz_nh4 = (cj_nh4 - cjminus1_nh4)/GENERAL_PARAMETERS.dz
-
-                delta_c_nh4 = NH4.f_transport(WFR.tteta_sz[t], teta_b_iplus1, cj_nh4, NH4.cs, dc_nh4, dc_dz_nh4, kads2_nh4, kdes2_nh4, NH4.D, UFi_sz, Rxi_3_nh4, GENERAL_PARAMETERS.dt, SOIL_PLANT.ro, SOIL_PLANT.f, GENERAL_PARAMETERS.dz)
-
-                if teta_b_iplus1 > 0:
-                    ci1_nh4 = cj_nh4 + delta_c_nh4
-                else:
-                    ci1_nh4 = 0
-
-                if ci1_nh4 <= 0.0000000000000001:
-                    ci1_nh4 = 0
-                else:
-                    ci1_nh4 = ci1_nh4
-
-                cj_i1_nh4.append(ci1_nh4)
-
-    ### Nitrate
-                Pesz_no3 = SZ.f_peclet(UFi_sz, NO3.D, GENERAL_PARAMETERS.dz)
-
-                if USZ.m_usz < (n-1):
-                    if Pesz_no3 <= 2:
-                        if j == 0: #first cell
-                            dc_no3 = cjplus1_no3 - 2*cj_no3 + cmminus1_no3
-                            dc_dz_no3 = (cjplus1_no3 - cmminus1_no3)/(2*GENERAL_PARAMETERS.dz)
-
-                        elif j == (SZ.m_sz - 1): #last cell
-                            dc_no3 = cj_no3 - 2*cj_no3 + cjminus1_no3
-                            dc_dz_no3 = (cj_no3 - cjminus1_no3)/GENERAL_PARAMETERS.dz
-
-                        else:
-                            dc_no3 = cjplus1_no3 - 2*cj_no3 + cjminus1_no3
-                            dc_dz_no3 = (cjplus1_no3 - cjminus1_no3)/(2*GENERAL_PARAMETERS.dz)
-
-                    else: #Pesz > 2
-                        if j == 0: #first cell
-                            dc_no3 = cjplus1_no3 - 2*cj_no3 + cmminus1_no3
-                            dc_dz_no3 = (cj_no3 - cmminus1_no3)/GENERAL_PARAMETERS.dz
-
-                        elif j == (SZ.m_sz - 1): #last cell
-                            dc_no3 = cj_no3 - 2*cj_no3 + cjminus1_no3
-                            dc_dz_no3 = (cj_no3 - cjminus1_no3)/GENERAL_PARAMETERS.dz
-
-                        else:
-                            dc_no3 = cjplus1_no3 - 2*cj_no3 + cjminus1_no3
-                            dc_dz_no3 = (cj_no3 - cjminus1_no3)/GENERAL_PARAMETERS.dz
-
-
-                if USZ.m_usz == (n - 1):
-                    dc_no3 = cj_no3 - 2*cj_no3 + cjminus1_no3
-                    dc_dz_no3 = (cj_no3 - cjminus1_no3)/(2*GENERAL_PARAMETERS.dz)
-
-                if USZ.m_usz == 0:
-                    if Pesz_no3 <= 2:
-                        if j == 0: #first cell
-                            dc_no3 = cjplus1_no3 - 2*cj_no3 + NO3.cpi
-                            dc_dz_no3 = (cjplus1_no3 - NO3.cpi)/(2*GENERAL_PARAMETERS.dz)
-
-                        elif j == (SZ.m_sz - 1): #last cell
-                            dc_no3 = cj_no3 - 2*cj_no3 + cjminus1_no3
-                            dc_dz_no3 = (cj_no3 - cjminus1_no3)/GENERAL_PARAMETERS.dz
-
-                        else:
-                            dc_no3 = cjplus1_no3 - 2*cj_no3 + cjminus1_no3
-                            dc_dz_no3 = (cjplus1_no3 - cjminus1_no3)/(2*GENERAL_PARAMETERS.dz)
-
-                    else: #Pusz > 2
-                        if j == 0: #first cell
-                            dc_no3 = cjplus1_no3 - 2*cj_no3 + NO3.cpi
-                            dc_dz_no3 = (cj_no3 - NO3.cpi)/GENERAL_PARAMETERS.dz
-
-                        elif j == (SZ.m_sz - 1): #last cell
-                            dc_no3 = cj_no3 - 2*cj_no3 + cjminus1_no3
-                            dc_dz_no3 = (cj_no3 - cjminus1_no3)/GENERAL_PARAMETERS.dz
-
-                        else:
-                            dc_no3 = cjplus1_no3 - 2*cj_no3 + cjminus1_no3
-                            dc_dz_no3 = (cj_no3 - cjminus1_no3)/GENERAL_PARAMETERS.dz
-
-                delta_c_no3 = NO3.f_transportftransp(WFR.tteta_sz[t], teta_b_iplus1, cj_no3, NO3.cs, dc_no3, dc_dz_no3, 0, 0, NO3.D, UFi_sz, Rxi_3_no3, GENERAL_PARAMETERS.dt, SOIL_PLANT.ro, SOIL_PLANT.f, GENERAL_PARAMETERS.dz)
-                if teta_b_iplus1 > 0:
-                    ci1_no3 = cj_no3 + delta_c_no3
-                else:
-                    ci1_no3 = 0
-
-                if ci1_no3 <= 0.0000000000000001:
-                    ci1_no3 = 0
-                else:
-                    ci1_no3 = ci1_no3
-
-                cj_i1_no3.append(ci1_no3)
-
-    ### DOC
-                Pesz_doc = SZ.f_peclet(UFi_sz, DOC.D, GENERAL_PARAMETERS.dz)
-
-                if USZ.m_usz < (n-1):
-                    if Pesz_doc <= 2:
-                        if j == 0: #first cell
-                            dc_doc = cjplus1_doc - 2*cj_doc + cmminus1_doc
-                            dc_dz_doc = (cjplus1_doc - cmminus1_doc)/(2*GENERAL_PARAMETERS.dz)
-
-                        elif j == (SZ.m_sz - 1): #last cell
-                            dc_doc = cj_doc - 2*cj_doc + cjminus1_doc
-                            dc_dz_doc = (cj_doc - cjminus1_doc)/GENERAL_PARAMETERS.dz
-
-                        else:
-                            dc_doc = cjplus1_doc - 2*cj_doc + cjminus1_doc
-                            dc_dz_doc = (cjplus1_doc - cjminus1_doc)/(2*GENERAL_PARAMETERS.dz)
-
-                    else: #Pesz > 2
-                        if j == 0: #first cell
-                            dc_doc = cjplus1_doc - 2*cj_doc + cmminus1_doc
-                            dc_dz_doc = (cj_doc - cmminus1_doc)/GENERAL_PARAMETERS.dz
-
-                        elif j == (SZ.m_sz - 1): #last cell
-                            dc_doc = cj_doc - 2*cj_doc + cjminus1_doc
-                            dc_dz_doc = (cj_doc - cjminus1_doc)/GENERAL_PARAMETERS.dz
-
-                        else:
-                            dc_doc = cjplus1_doc - 2*cj_doc + cjminus1_doc
-                            dc_dz_doc = (cj_doc - cjminus1_doc)/GENERAL_PARAMETERS.dz
-
-
-                if USZ.m_usz == (n - 1):
-                    dc_doc = cj_doc - 2*cj_doc + cjminus1_doc
-                    dc_dz_doc = (cj_doc - cjminus1_doc)/(2*GENERAL_PARAMETERS.dz)
-
-                if USZ.m_usz == 0:
-                    if Pesz_doc <= 2:
-                        if j == 0: #first cell
-                            dc_doc = cjplus1_doc - 2*cj_doc + DOC.cpi
-                            dc_dz_doc = (cjplus1_doc - DOC.cpi)/(2*GENERAL_PARAMETERS.dz)
-
-                        elif j == (SZ.m_sz - 1): #last cell
-                            dc_doc = cj_doc - 2*cj_doc + cjminus1_doc
-                            dc_dz_doc = (cj_doc - cjminus1_doc)/GENERAL_PARAMETERS.dz
-
-                        else:
-                            dc_doc = cjplus1_doc - 2*cj_doc + cjminus1_doc
-                            dc_dz_doc = (cjplus1_doc - cjminus1_doc)/(2*GENERAL_PARAMETERS.dz)
-
-                    else: #Pusz > 2
-                        if j == 0: #first cell
-                            dc_doc = cjplus1_doc - 2*cj_doc + DOC.cpi
-                            dc_dz_doc = (cj_doc - DOC.cpi)/GENERAL_PARAMETERS.dz
-
-                        elif j == (SZ.m_sz - 1): #last cell
-                            dc_doc = cj_doc - 2*cj_doc + cjminus1_doc
-                            dc_dz_doc = (cj_doc - cjminus1_doc)/GENERAL_PARAMETERS.dz
-
-                        else:
-                            dc_doc = cjplus1_doc - 2*cj_doc + cjminus1_doc
-                            dc_dz_doc = (cj_doc - cjminus1_doc)/GENERAL_PARAMETERS.dz
-
-                delta_c_doc = DOC.f_transport(WFR.tteta_sz[t], teta_b_iplus1, cj_doc, DOC.cs, dc_doc, dc_dz_doc, kads2_doc, kdes2_doc, DOC.D, UFi_sz, Rxi_3_doc, GENERAL_PARAMETERS.dt, SOIL_PLANT.ro, SOIL_PLANT.f, GENERAL_PARAMETERS.dz)
-                if teta_b_iplus1 > 0:
-                    ci1_doc = cj_doc + delta_c_doc
-                else:
-                    ci1_doc = 0
-
-                if ci1_doc <= 0.0000000000000001:
-                    ci1_doc = 0
-                else:
-                    ci1_doc = ci1_doc
-
-                cj_i1_doc.append(ci1_doc)
-
-
-
+        O2.cj_i1 = []
+        NH4.cj_i1 = []
+        NO3.cj_i1 = []
+        DOC.cj_i1 = []
+        
+        O2.Rxj = []
+        NH4.Rxj = []
+        NO3.Rxj = []
+        DOC.Rxj = []
+        
+        NH4.csi_sz = []
+        DOC.csi_sz = []
+
+        for j in range(SZ.m_sz):
+            O2.cjplus1 = O2.concentration_water_phase_sz(SZ.m_sz, j)
+            NH4.cjplus1 = NH4.concentration_water_phase_sz(SZ.m_sz, j)
+            NO3.cjplus1 = NO3.concentration_water_phase_sz(SZ.m_sz, j)
+            DOC.cjplus1 = DOC.concentration_water_phase_sz(SZ.m_sz, j)
+
+            O2.cs = O2.concentration_soil_phase_sz()
+            NO3.cs = NO3.concentration_soil_phase_sz()
+            NH4.csi_sz.append(NH4.concentration_soil_phase_sz(j, t, WFR.tteta_sz[t], NH4.cji[l], SOIL_PLANT.ro, GENERAL_PARAMETERS.dt, 0.0000000000000001, kmicro=NH4.k_nh4_mb))
+            NH4.cs_sz_a = NH4.cs_sz[t][j]
+            DOC.csi_sz.append(DOC.concentration_soil_phase(j, t,  WFR.tteta_sz[t], DOC.cji[l], SOIL_PLANT.ro, GENERAL_PARAMETERS.dt, 0.0000000000000001, kmicro=DOC.k_doc_mb))
+            DOC.cs_sz_a = DOC.cs_sz[t][j]
+            
+            SZ.unit_flux = SZ.f_unit_flux(j, WFR.tQfs[t], WFR.tQhc[t], WFR.tQet2[t], Qorif, WFR.tQinfsz[t], WFR.tteta_sz[t], PZ.Ab)
+            
+            O2.Rxi_sz = O2.f_reaction_sz(O2.cji[j], NH4.cji[j], GENERAL_PARAMETERS.k_nit) + SOIL_PLANT.f_plant_uptake_sz(O2.cji[j], WFR.tteta_sz[t], "O2")
+            NH4.Rxi_sz = NH4.f_reaction_sz() + SOIL_PLANT.f_plant_uptake_sz(NH4.cji[j], WFR.tteta_sz[t], "NH4", NH4.Fm_nh4, NH4.Km_nh4)
+            NO3.Rxi_sz = NO3.f_reaction_sz(NO3.cji[j], O2.cji[j], DOC.cji[j], GENERAL_PARAMETERS.k_denit) + SOIL_PLANT.f_plant_uptake_sz(NO3.cji[j], WFR.tteta_sz[t], "NO3", NO3.Fm_no3, NO3.Km_no3)
+            DOC.Rxi_sz = DOC.f_reaction_sz(DOC.cji[j])
+
+            O2.Rxj.append(O2.Rxi_sz * (1 / teta_b_iplus1) * GENERAL_PARAMETERS.dt)
+            NH4.Rxj.append(NH4.Rxi_sz * (1 / teta_b_iplus1) * GENERAL_PARAMETERS.dt)
+            NO3.Rxj.append(NO3.Rxi_sz * (1 / teta_b_iplus1) * GENERAL_PARAMETERS.dt)
+            DOC.Rxj.append(DOC.Rxi_sz * (1 / teta_b_iplus1) * GENERAL_PARAMETERS.dt)
+
+### Oxygen
+            O2.peclet_sz = SZ.f_peclet(SZ.unit_flux, O2.D, GENERAL_PARAMETERS.dz)
+            concentration = O2.concentration_delta_sz(USZ.m_usz, SZ.m_sz, GENERAL_PARAMETERS.n, O2.peclet_sz, j, GENERAL_PARAMETERS.dz, WFR.tteta_sz[t], teta_b_iplus1, SZ.unit_flux, GENERAL_PARAMETERS.dt, SOIL_PLANT.ro, SOIL_PLANT.f, 0.0000000000000001)
+            O2.cj_i1.append(concentration)
+
+### Amonia
+            NH4.peclet_sz = SZ.f_peclet(SZ.unit_flux, NH4.D, GENERAL_PARAMETERS.dz)
+            concentration = NH4.concentration_delta_sz(USZ.m_usz, SZ.m_sz, GENERAL_PARAMETERS.n, NH4.peclet_sz, j, GENERAL_PARAMETERS.dz, WFR.tteta_sz[t], teta_b_iplus1, SZ.unit_flux, GENERAL_PARAMETERS.dt, SOIL_PLANT.ro, SOIL_PLANT.f, 0.0000000000000001)
+            NH4.cj_i1.append(concentration)
+
+### Nitrate
+            NO3.peclet_sz = SZ.f_peclet(SZ.unit_flux, NO3.D, GENERAL_PARAMETERS.dz)
+            concentration = NO3.concentration_delta_sz(USZ.m_usz, SZ.m_sz, GENERAL_PARAMETERS.n, NO3.peclet_sz, j, GENERAL_PARAMETERS.dz, WFR.tteta_sz[t], teta_b_iplus1, SZ.unit_flux, GENERAL_PARAMETERS.dt, SOIL_PLANT.ro, SOIL_PLANT.f, 0.0000000000000001)
+            NO3.cj_i1.append(concentration)
+
+### DOC
+            DOC.peclet_sz = SZ.f_peclet(SZ.unit_flux, DOC.D, GENERAL_PARAMETERS.dz)
+            concentration = DOC.concentration_delta_sz(USZ.m_usz, SZ.m_sz, GENERAL_PARAMETERS.n, DOC.peclet_sz, j, GENERAL_PARAMETERS.dz, WFR.tteta_sz[t], teta_b_iplus1, SZ.unit_flux, GENERAL_PARAMETERS.dt, SOIL_PLANT.ro, SOIL_PLANT.f, 0.0000000000000001)
+            DOC.cj_i1.append(concentration)
 
         #Corrective step
 
-        if hpipe > 0:
+        if GENERAL_PARAMETERS.hpipe > 0:
             ### Oxygen
             Mstor_o2_ast = sum(O2.c_usz[t])*PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz + sum(O2.c_sz[t])*PZ.Ab*WFR.tteta_sz[t]*thsz[t]*1000/SZ.m_sz
             O2.Mstor_ast_list.append(Mstor_o2_ast)
@@ -677,7 +347,7 @@ def run_Kin():
     #         for l in range(USZ.m_usz):
     #             NH4.cl_i1 [l] = NH4.cl_i1 [l] + delta_ast_nh4_usz
     #         for j in range(SZ.m_sz):
-    #             cj_i1_nh4[j] = cj_i1_nh4[j] + delta_ast_nh4_sz
+    #             NH4.cj_i1[j] = NH4.cj_i1[j] + delta_ast_nh4_sz
 
             ### Nitrate
 
@@ -802,7 +472,7 @@ def run_Kin():
                 DOC.cl_i1[1] = 0
 
 
-        else: #if hpipe == 0
+        else: #if GENERAL_PARAMETERS.hpipe == 0
 
             ### Oxygen
 
@@ -1066,20 +736,20 @@ def run_Kin():
         DOC.Rx_usz.append(DOC.Rxl)
         
     ## adding layers of SZ in time
-        if hpipe > 0:
-            O2.c_sz.append(cj_i1_o2)
-            O2.Rx_sz.append(Rxj_o2)
+        if GENERAL_PARAMETERS.hpipe > 0:
+            O2.c_sz.append(O2.cj_i1)
+            O2.Rx_sz.append(O2.Rxj)
             
-            NH4.c_sz.append(cj_i1_nh4)
-            NH4.cs_sz.append(csi_sz_nh4)
-            NH4.Rx_sz.append(Rxj_nh4)
+            NH4.c_sz.append(NH4.cj_i1)
+            NH4.cs_sz.append(NH4.csi_sz)
+            NH4.Rx_sz.append(NH4.Rxj)
             
-            NO3.c_sz.append(cj_i1_no3)
-            NO3.Rx_sz.append(Rxj_no3)
+            NO3.c_sz.append(NO3.cj_i1)
+            NO3.Rx_sz.append(NO3.Rxj)
             
-            DOC.c_sz.append(cj_i1_doc)
-            DOC.cs_sz.append(csi_sz_doc)
-            DOC.Rx_sz.append(Rxj_doc)
+            DOC.c_sz.append(DOC.cj_i1)
+            DOC.cs_sz.append(DOC.csi_sz)
+            DOC.Rx_sz.append(DOC.Rxj)
             
     # **5. Transforming in dataframe **
     ## Oxygen
