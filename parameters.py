@@ -225,16 +225,16 @@ class Nutrient:
         self.Rx_usz = [self.c0_usz]
         self.Rxi_usz = 0
         self.Rx_sz = [self.c0_sz]
-        self.Mstor_ast_list = []  # O passo corretivo é feito com a massa, M indica a massa que vai ser usada no passo corretivo. Ast é asterisco.
-        self.Msoil_acum = []  # massa em cada zona para poder calcular no balanço de massa
-        self.MRx_acum = []  # massa em cada zona para poder calcular no balanço de massa
-        self.Min_acum = []  # massa em cada zona para poder calcular no balanço de massa
-        self.Mover_acum = []  # massa em cada zona para poder calcular no balanço de massa
-        self.Mpipe_acum = []  # massa em cada zona para poder calcular no balanço de massa
-        self.Minfsz_acum = []  # massa em cada zona para poder calcular no balanço de massa
-        self.Met_acum = []  # massa em cada zona para poder calcular no balanço de massa
-        self.Mpz_list = []  # massa em cada zona para poder calcular no balanço de massa
-        self.Mstor_mb_list = []  # mb mass balance
+        self.mass_storm_asterisk_accumulated = []  # O passo corretivo é feito com a massa, M indica a massa que vai ser usada no passo corretivo. Ast é asterisco.
+        self.mass_reaction_rate_accumulated = []
+        self.mass_inflow_accumulated = []
+        self.mass_overflow_accumulated = []
+        self.mass_pipe_outflow_accumulated = []
+        self.mass_infiltration_sz_accumulated = []
+        self.mass_evapotranspiration_accumulated = []
+        self.mass_pz_accumulated = []
+        self.mass_soil_accumulated = []
+        self.mass_balance = []
 
     def f_transport(self, teta_i, teta_iplus1, ci, cs_i, dc, dc_dz, kads, kdes, D, UF, Rx, dt, ro, f, dz):
         if teta_i == 0:
@@ -384,7 +384,103 @@ class Nutrient:
 
         return concentration
 
+    def f_mass_storm_asterisk(self, time, Ab, teta_usz, teta_sz, m_usz, m_sz, husz, hsz, hpipe):
+        usz_therm = sum(self.c_usz[time]) * Ab * teta_usz[time] * husz[time] * 1000 / m_usz
+        if hpipe > 0:
+            sz_therm = sum(self.c_sz[time]) * Ab * teta_sz[time] * hsz[time] * 1000 / m_sz
+        else:
+            sz_therm = 0
+        mass_storm_ast = usz_therm + sz_therm
+        return mass_storm_ast
 
+    def f_mass_soil(self, time, ro, Ab, husz, hsz, m_usz, m_sz, hpipe):
+        mass_soil_before_usz = self.cs_usz_a * ro * Ab * husz[time] * 1000
+        mass_soil_now_usz = sum(self.cs_usz[time]) * ro * Ab * husz[time] * 1000 / m_usz
+        if hpipe > 0:
+            mass_soil_before_sz = self.cs_sz_a * ro * Ab * hsz * 1000
+            mass_soil_now_sz = sum(self.cs_sz[time]) * ro * Ab * hsz * 1000 / m_sz
+        else:
+            mass_soil_before_sz = 0
+            mass_soil_now_sz = 0
+        mass_soil_before = mass_soil_before_usz + mass_soil_before_sz
+        mass_soil_now = mass_soil_now_usz + mass_soil_now_sz
+        mass_soil = mass_soil_now - mass_soil_before
+        return mass_soil
+
+    def f_mass_reaction_rate(self, time, Ab, teta_usz, teta_sz, m_usz, m_sz, husz, hsz, hpipe):
+        usz_therm = sum(self.Rx_usz[time]) * Ab * teta_usz[time] * husz[time] * 1000 / m_usz
+        if hpipe > 0:
+            sz_therm = sum(self.Rx_sz[time]) * Ab * teta_sz[time] * hsz[time] * 1000 / m_sz
+        else:
+            sz_therm = 0
+        mass_reaction_rate = - (usz_therm + sz_therm)
+        return mass_reaction_rate
+
+    def f_mass_inflow(self, time, water_inflow, inflow_concentration, dt):
+        mass_inflow = water_inflow[time] * inflow_concentration[time] * dt * 1000
+        return mass_inflow
+
+    def f_mass_overflow(self, time, overflow, dt):
+        mass_overflow = overflow[time] * self.cp[time] * dt * 1000
+        return mass_overflow
+
+    def f_mass_pipe_outflow(self, time, pipe_outflow, m_usz, m_sz, dt, hpipe):
+        if hpipe > 0:
+            mass_pipe_outflow = pipe_outflow[time] * self.c_sz[time][m_sz - 1] * dt * 1000
+        else:
+            mass_pipe_outflow = pipe_outflow[time] * self.c_usz[time][m_usz - 1] * dt * 1000
+
+        return mass_pipe_outflow
+
+    def f_mass_infiltration_sz(self, time, water_infiltration, m_usz, m_sz, dt, hpipe):
+        if hpipe > 0:
+            mass_infiltration_sz = water_infiltration[time] * self.c_sz[time][m_sz - 1] * dt * 1000
+        else:
+            mass_infiltration_sz = water_infiltration[time] * self.c_usz[time][m_usz - 1] * dt * 1000
+        return mass_infiltration_sz
+
+    def f_mass_evapotranspiration(self, time, water_evapotranspiration, dt):
+        mass_evapotranspiration = water_evapotranspiration[time] * self.cl_i1[0] * dt * 1000
+        return mass_evapotranspiration
+
+    def f_mass_pz(self, time, hpz, Ab):
+        mass_pz = hpz[time] * Ab * self.cp[time] * 1000
+        return mass_pz
+
+    def f_mass_balance(self, time, mass_storm_asterisk, mass_soil, mass_reaction_rate, mass_inflow, mass_overflow,
+                       mass_pipe_outflow, mass_infiltration_sz, mass_evapotranspiration, mass_pz):
+        self.mass_pz_accumulated.append(mass_pz)
+        self.mass_storm_asterisk_accumulated.append(mass_storm_asterisk)
+        self.mass_soil_accumulated.append(mass_soil)
+
+        if time == 0:
+            self.mass_reaction_rate_accumulated.append(mass_reaction_rate)
+            self.mass_inflow_accumulated.append(mass_inflow)
+            self.mass_overflow_accumulated.append(mass_overflow)
+            self.mass_pipe_outflow_accumulated.append(mass_pipe_outflow)
+            self.mass_infiltration_sz_accumulated.append(mass_infiltration_sz)
+            self.mass_evapotranspiration_accumulated.append(mass_evapotranspiration)
+        else:
+            self.mass_reaction_rate_accumulated.append(mass_reaction_rate + self.mass_reaction_rate_accumulated[-1])
+            self.mass_inflow_accumulated.append(mass_inflow + self.mass_inflow_accumulated[-1])
+            self.mass_overflow_accumulated.append(mass_overflow + self.mass_overflow_accumulated[-1])
+            self.mass_pipe_outflow_accumulated.append(mass_pipe_outflow + self.mass_pipe_outflow_accumulated[-1])
+            self.mass_infiltration_sz_accumulated.append(mass_infiltration_sz + self.mass_infiltration_sz_accumulated[-1])
+            self.mass_evapotranspiration_accumulated.append(mass_evapotranspiration + self.mass_evapotranspiration_accumulated[-1])
+
+        mass_balance = self.mass_inflow_accumulated[-1] - self.mass_pz_accumulated[-1] - self.mass_overflow_accumulated[-1] - \
+                       self.mass_pipe_outflow_accumulated[-1] - self.mass_infiltration_sz_accumulated[-1] - \
+                       self.mass_evapotranspiration_accumulated[-1] - self.mass_soil_accumulated[-1] - \
+                       self.mass_reaction_rate_accumulated[-1]
+
+        return mass_balance
+
+    def f_delta_mass_balance_usz(self, time, Ab, teta_usz, husz, m_usz):
+        delta_mass_balance_usz = (self.mass_balance[-1] - self.mass_storm_asterisk_accumulated[-1]) / (Ab * teta_usz[time] * husz[time] * 1000 / m_usz)
+        concentration = self.cl_i1[1] + delta_mass_balance_usz
+        if concentration < 0:
+            concentration = 0
+        return concentration
 
 
 class Ammonia(Nutrient):
@@ -442,6 +538,9 @@ class Nitrate(Nutrient):
     def concentration_soil_phase_usz(self):
         return 0
 
+    def f_mass_soil(self):
+        return 0
+
 
 class Oxygen(Nutrient):
     def __init__(self, m_usz, m_sz, setup_file):
@@ -471,6 +570,8 @@ class Oxygen(Nutrient):
     def concentration_soil_phase_sz(self):
         return 0
 
+    def f_mass_soil(self):
+        return 0
 
 
 class DissolvedOrganicCarbon(Nutrient):

@@ -206,518 +206,77 @@ def run_Kin():
             DOC.cj_i1.append(concentration)
 
         #Corrective step
-
-        if GENERAL_PARAMETERS.hpipe > 0:
-            ### Oxygen
-            Mstor_o2_ast = sum(O2.c_usz[t])*PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz + sum(O2.c_sz[t])*PZ.Ab*WFR.tteta_sz[t]*thsz[t]*1000/SZ.m_sz
-            O2.Mstor_ast_list.append(Mstor_o2_ast)
-
-            Msoil_o2_a = 0
-            Msoil_o2 = 0
-            O2.Msoil_acum.append(0)
-
-            MRx_o2 = - (sum(O2.Rx_usz[t])*PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz + sum(O2.Rx_sz[t])*PZ.Ab*WFR.tteta_sz[t]*thsz[t]*1000/SZ.m_sz)
-            if t == 0:
-                O2.MRx_acum.append(MRx_o2)
-            else:
-                O2.MRx_acum.append(MRx_o2 + O2.MRx_acum[-1])
-
-
-            Min_o2 = tQin[t]*INFLOW_PARAMETERS.cin_o2[t]*dt*1000
-            if t == 0:
-                O2.Min_acum.append(Min_o2)
-            else:
-                O2.Min_acum.append(Min_o2 + O2.Min_acum[-1])
-
-            Mover_o2 = WFR.tQover[t]*O2.cp[t]*dt*1000
-            if t == 0:
-                O2.Mover_acum.append(Mover_o2)
-            else:
-                O2.Mover_acum.append(Mover_o2 + O2.Mover_acum[-1])
-
-            Mpipe_o2 = WFR.tQpipe[t]*O2.c_sz[t][SZ.m_sz-1]*dt*1000
-            if t == 0:
-                O2.Mpipe_acum.append(Mpipe_o2)
-            else:
-                O2.Mpipe_acum.append(Mpipe_o2 + O2.Mpipe_acum[-1])
-
-            Minfsz_o2 = WFR.tQinfsz[t]*O2.c_sz[t][SZ.m_sz-1]*dt*1000
-            if t == 0:
-                O2.Minfsz_acum.append(Minfsz_o2)
-            else:
-                O2.Minfsz_acum.append(Minfsz_o2 + O2.Minfsz_acum[-1])
-
-            Met_o2 = WFR.tQet[t]*O2.cl_i1[0]*dt*1000
-            if t == 0:
-                O2.Met_acum.append(Met_o2)
-            else:
-                O2.Met_acum.append(Met_o2 + O2.Met_acum[-1])
-
-            Mpz_o2 = WFR.thpEND[t]*PZ.Ab*1000*O2.cp[t]
-            O2.Mpz_list.append(Mpz_o2)
-
-
-            Mstor_o2_mb = O2.Min_acum[-1] - O2.Mpz_list[-1] - O2.Mover_acum[-1] - O2.Mpipe_acum[-1] - O2.Minfsz_acum[-1] - O2.Met_acum[-1] - O2.Msoil_acum[-1] - O2.MRx_acum[-1]
-            O2.Mstor_mb_list.append(Mstor_o2_mb)
-
-            delta_ast_o2_usz = (Mstor_o2_mb - Mstor_o2_ast)/(PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz)
-            O2.cl_i1[1] = O2.cl_i1[1] + delta_ast_o2_usz
-            if O2.cl_i1[1] > 0:
-                O2.cl_i1[1] = O2.cl_i1[1]
-            else:
-                O2.cl_i1[1] = 0
-
-            ### Amonia
-
-            Mstor_nh4_ast = sum(NH4.c_usz[t])*PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz + sum(NH4.c_sz[t])*PZ.Ab*WFR.tteta_sz[t]*thsz[t]*1000/SZ.m_sz
-            NH4.Mstor_ast_list.append(Mstor_nh4_ast)
-
-            Msoil_nh4_a = NH4.cs_usz_a*SOIL_PLANT.ro*PZ.Ab*WFR.thusz[t]*1000 + NH4.cs_sz_a*SOIL_PLANT.ro*PZ.Ab*thsz[t]*1000
-            Msoil_nh4 = sum(NH4.cs_usz[t])*SOIL_PLANT.ro*PZ.Ab*WFR.thusz[t]*1000/USZ.m_usz + sum(NH4.cs_sz[t])*ro*PZ.Ab*thsz[t]*1000/SZ.m_sz
-            NH4.Msoil_acum.append(Msoil_nh4 - Msoil_nh4_a)
-
-
-            MRx_nh4 = - (sum(NH4.Rx_usz[t])*PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz + sum(NH4.Rx_sz[t])*PZ.Ab*WFR.tteta_sz[t]*thsz[t]*1000/SZ.m_sz)
-            if t == 0:
-                NH4.MRx_acum.append(MRx_nh4)
-            else:
-                NH4.MRx_acum.append(MRx_nh4 + NH4.MRx_acum[-1])
-
-
-            Min_nh4 = tQin[t]*INFLOW_PARAMETERS.cin_nh4[t]*dt*1000
-            if t == 0:
-                NH4.Min_acum.append(Min_nh4)
-            else:
-                NH4.Min_acum.append(Min_nh4 + NH4.Min_acum[-1])
-
-            Mover_nh4 = WFR.tQover[t]*NH4.cp[t]*dt*1000
-            if t == 0:
-                NH4.Mover_acum.append(Mover_nh4)
-            else:
-                NH4.Mover_acum.append(Mover_nh4 + NH4.Mover_acum[-1])
-
-            Mpipe_nh4 = WFR.tQpipe[t]*NH4.c_sz[t][SZ.m_sz-1]*dt*1000
-            if t == 0:
-                NH4.Mpipe_acum.append(Mpipe_nh4)
-            else:
-                NH4.Mpipe_acum.append(Mpipe_nh4 + NH4.Mpipe_acum[-1])
-
-            Minfsz_nh4 = WFR.tQinfsz[t]*NH4.c_sz[t][SZ.m_sz-1]*dt*1000
-            if t == 0:
-                NH4.Minfsz_acum.append(Minfsz_nh4)
-            else:
-                NH4.Minfsz_acum.append(Minfsz_nh4 + NH4.Minfsz_acum[-1])
-
-            Met_nh4 = WFR.tQet[t]*NH4.cl_i1 [0]*dt*1000
-            if t == 0:
-                NH4.Met_acum.append(Met_nh4)
-            else:
-                NH4.Met_acum.append(Met_nh4 + NH4.Met_acum[-1])
-
-            Mpz_nh4 = WFR.thpEND[t]*PZ.Ab*1000*NH4.cp[t]
-            NH4.Mpz_list.append(Mpz_nh4)
-
-
-            Mstor_nh4_mb = NH4.Min_acum[-1] - NH4.Mpz_list[-1] - NH4.Mover_acum[-1] - NH4.Mpipe_acum[-1] - NH4.Minfsz_acum[-1] - NH4.Met_acum[-1] - NH4.Msoil_acum[-1] - NH4.MRx_acum[-1]
-            NH4.Mstor_mb_list.append(Mstor_nh4_mb)
-
-
-    #         delta_ast_nh4_usz = 0
-    #         delta_ast_nh4_sz = 0
-
-    #         delta_ast_nh4_usz = (Mstor_nh4_mb - Mstor_nh4_ast)/(n*(PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz))
-    #         delta_ast_nh4_sz = (Mstor_nh4_mb - Mstor_nh4_ast)/(n*(PZ.Ab*WFR.tteta_sz[t]*thsz[t]*1000/SZ.m_sz))
-
-            delta_ast_nh4_usz = (Mstor_nh4_mb - Mstor_nh4_ast)/(PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz)
-            NH4.cl_i1 [1] = NH4.cl_i1 [1] + delta_ast_nh4_usz
-            if NH4.cl_i1 [1] > 0:
-                NH4.cl_i1 [1] = NH4.cl_i1 [1]
-            else:
-                NH4.cl_i1 [1] = 0
-    #         sum_cusz_nh4 = sum(NH4.c_usz[t])
-    #         sum_csz_nh4 = sum(NH4.c_sz[t])
-    #         print('t: ', t, 'Mstor_trace: ', Mstor_trace, ', Mstor_mb: ', Mstor_mb, ', dif: ', (Mstor_mb - Mstor_trace))
-    #         print('t: ', t, ', delta_usz: ', delta_trace_nh4_usz, ', delta_sz: ', delta_trace_nh4_sz)
-    #         print('teta_sm: ', WFR.tteta_usz[t], ', husz: ', WFR.thusz[t], ', teta_b: ', WFR.tteta_sz[t], ', hsz: ', thsz[t])
-    #         print('sum_cusz_nh4: ', sum_cusz_nh4, ', sum_csz_nh4: ', sum_csz_nh4)
-    #         print('Qin: ', tQin[t], ',hpEND_i: ', WFR.thpEND[t], ', hpEND_i-1: ', WFR.thpEND[t-1], ',Qpipe: ', WFR.tQpipe[t], ', Qover: ', WFR.tQover[t], ', Qinfsz: ', WFR.tQinfsz[t], ', Qet: ', WFR.tQet[t])
-    #         print('Cin: ', INFLOW_PARAMETERS.cin_nh4[t], ', Cp_i: ', NH4.cp[t], ', Cp_i-1: ', NH4.cp[t-1], ', Csz_ultimo: ', c_pipe)
-    #         input()
-    #
-    #         for l in range(USZ.m_usz):
-    #             NH4.cl_i1 [l] = NH4.cl_i1 [l] + delta_ast_nh4_usz
-    #         for j in range(SZ.m_sz):
-    #             NH4.cj_i1[j] = NH4.cj_i1[j] + delta_ast_nh4_sz
-
-            ### Nitrate
-
-            Mstor_no3_ast = sum(NO3.c_usz[t])*PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz + sum(NO3.c_sz[t])*PZ.Ab*WFR.tteta_sz[t]*thsz[t]*1000/SZ.m_sz
-            NO3.Mstor_ast_list.append(Mstor_no3_ast)
-
-            Msoil_no3_a = 0
-            Msoil_no3 = 0
-            NO3.Msoil_acum.append(0)
-
-
-            MRx_no3 = - (sum(NO3.Rx_usz[t])*PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz + sum(NO3.Rx_sz[t])*PZ.Ab*WFR.tteta_sz[t]*thsz[t]*1000/SZ.m_sz)
-            if t == 0:
-                NO3.MRx_acum.append(MRx_no3)
-            else:
-                NO3.MRx_acum.append(MRx_no3 + NO3.MRx_acum[-1])
-
-
-            Min_no3 = tQin[t]*INFLOW_PARAMETERS.cin_no3[t]*dt*1000
-            if t == 0:
-                NO3.Min_acum.append(Min_no3)
-            else:
-                NO3.Min_acum.append(Min_no3 + NO3.Min_acum[-1])
-
-            Mover_no3 = WFR.tQover[t]*NO3.cp[t]*dt*1000
-            if t == 0:
-                NO3.Mover_acum.append(Mover_no3)
-            else:
-                NO3.Mover_acum.append(Mover_no3 + NO3.Mover_acum[-1])
-
-            Mpipe_no3 = WFR.tQpipe[t]*NO3.c_sz[t][SZ.m_sz-1]*dt*1000
-            if t == 0:
-                NO3.Mpipe_acum.append(Mpipe_no3)
-            else:
-                NO3.Mpipe_acum.append(Mpipe_no3 + NO3.Mpipe_acum[-1])
-
-            Minfsz_no3 = WFR.tQinfsz[t]*NO3.c_sz[t][SZ.m_sz-1]*dt*1000
-            if t == 0:
-                NO3.Minfsz_acum.append(Minfsz_no3)
-            else:
-                NO3.Minfsz_acum.append(Minfsz_no3 + NO3.Minfsz_acum[-1])
-
-            Met_no3 = WFR.tQet[t]*NO3.cl_i1[0]*dt*1000
-            if t == 0:
-                NO3.Met_acum.append(Met_no3)
-            else:
-                NO3.Met_acum.append(Met_no3 + NO3.Met_acum[-1])
-
-            Mpz_no3 = WFR.thpEND[t]*PZ.Ab*1000*NO3.cp[t]
-            NO3.Mpz_list.append(Mpz_no3)
-
-
-            Mstor_no3_mb = NO3.Min_acum[-1] - NO3.Mpz_list[-1] - NO3.Mover_acum[-1] - NO3.Mpipe_acum[-1] - NO3.Minfsz_acum[-1] - NO3.Met_acum[-1] - NO3.Msoil_acum[-1] - NO3.MRx_acum[-1]
-            NO3.Mstor_mb_list.append(Mstor_no3_mb)
-
-            delta_ast_no3_usz = (Mstor_no3_mb - Mstor_no3_ast)/(PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz)
-            NO3.cl_i1[1] = NO3.cl_i1[1] + delta_ast_no3_usz
-            if NO3.cl_i1[1] > 0:
-                NO3.cl_i1[1] = NO3.cl_i1[1]
-            else:
-                NO3.cl_i1[1] = 0
-
-            ### DOC
-
-            Mstor_doc_ast = sum(DOC.c_usz[t])*PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz + sum(DOC.c_sz[t])*PZ.Ab*WFR.tteta_sz[t]*thsz[t]*1000/SZ.m_sz
-            DOC.Mstor_ast_list.append(Mstor_doc_ast)
-
-            Msoil_doc_a = DOC.cs_usz_a*SOIL_PLANT.ro*PZ.Ab*WFR.thusz[t]*1000 + DOC.cs_sz_a*SOIL_PLANT.ro*PZ.Ab*thsz[t]*1000
-            Msoil_doc = sum(DOC.cs_usz[t])*SOIL_PLANT.ro*PZ.Ab*WFR.thusz[t]*1000/USZ.m_usz + sum(DOC.cs_sz[t])*SOIL_PLANT.ro*PZ.Ab*thsz[t]*1000/SZ.m_sz
-            DOC.Msoil_acum.append(Msoil_doc - Msoil_doc_a)
-
-
-            MRx_doc = - (sum(DOC.Rx_usz[t])*PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz + sum(DOC.Rx_sz[t])*PZ.Ab*WFR.tteta_sz[t]*thsz[t]*1000/SZ.m_sz)
-            if t == 0:
-                DOC.MRx_acum.append(MRx_doc)
-            else:
-                DOC.MRx_acum.append(MRx_doc + DOC.MRx_acum[-1])
-
-
-            Min_doc = tQin[t]*INFLOW_PARAMETERS.cin_doc[t]*dt*1000
-            if t == 0:
-                DOC.Min_acum.append(Min_doc)
-            else:
-                DOC.Min_acum.append(Min_doc + DOC.Min_acum[-1])
-
-            Mover_doc = WFR.tQover[t]*DOC.cp[t]*dt*1000
-            if t == 0:
-                DOC.Mover_acum.append(Mover_doc)
-            else:
-                DOC.Mover_acum.append(Mover_doc + DOC.Mover_acum[-1])
-
-            Mpipe_doc = WFR.tQpipe[t]*DOC.c_sz[t][SZ.m_sz-1]*dt*1000
-            if t == 0:
-                DOC.Mpipe_acum.append(Mpipe_doc)
-            else:
-                DOC.Mpipe_acum.append(Mpipe_doc + DOC.Mpipe_acum[-1])
-
-            Minfsz_doc = WFR.tQinfsz[t]*DOC.c_sz[t][SZ.m_sz-1]*dt*1000
-            if t == 0:
-                DOC.Minfsz_acum.append(Minfsz_doc)
-            else:
-                DOC.Minfsz_acum.append(Minfsz_doc + DOC.Minfsz_acum[-1])
-
-            Met_doc = WFR.tQet[t]*DOC.cl_i1[0]*dt*1000
-            if t == 0:
-                DOC.Met_acum.append(Met_doc)
-            else:
-                DOC.Met_acum.append(Met_doc + DOC.Met_acum[-1])
-
-            Mpz_doc = WFR.thpEND[t]*PZ.Ab*1000*DOC.cp[t]
-            DOC.Mpz_list.append(Mpz_doc)
-
-
-            Mstor_doc_mb = DOC.Min_acum[-1] - DOC.Mpz_list[-1] - DOC.Mover_acum[-1] - DOC.Mpipe_acum[-1] - DOC.Minfsz_acum[-1] - DOC.Met_acum[-1] - DOC.Msoil_acum[-1] - DOC.MRx_acum[-1]
-            DOC.Mstor_mb_list.append(Mstor_doc_mb)
-
-            delta_ast_doc_usz = (Mstor_doc_mb - Mstor_doc_ast)/(PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz)
-            DOC.cl_i1[1] = DOC.cl_i1[1] + delta_ast_doc_usz
-            if DOC.cl_i1[1] > 0:
-                DOC.cl_i1[1] = DOC.cl_i1[1]
-            else:
-                DOC.cl_i1[1] = 0
-
-
-        else: #if GENERAL_PARAMETERS.hpipe == 0
-
-            ### Oxygen
-
-            Mstor_o2_ast = sum(O2.c_usz[t])*PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz
-            O2.Mstor_ast_list.append(Mstor_o2_ast)
-
-            Msoil_o2_a = 0
-            Msoil_o2 = 0
-            O2.Msoil_acum.append(0)
-
-            MRx_o2 = - (sum(O2.Rx_usz[t])*PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz)
-            if t == 0:
-                O2.MRx_acum.append(MRx_o2)
-            else:
-                O2.MRx_acum.append(MRx_o2 + O2.MRx_acum[-1])
-
-
-            Min_o2 = tQin[t]*INFLOW_PARAMETERS.cin_o2[t]*dt*1000
-            if t == 0:
-                O2.Min_acum.append(Min_o2)
-            else:
-                O2.Min_acum.append(Min_o2 + O2.Min_acum[-1])
-
-            Mover_o2 = WFR.tQover[t]*O2.cp[t]*dt*1000
-            if t == 0:
-                O2.Mover_acum.append(Mover_o2)
-            else:
-                O2.Mover_acum.append(Mover_o2 + O2.Mover_acum[-1])
-
-            Mpipe_o2 = WFR.tQpipe[t]*O2.c_usz[t][USZ.m_usz-1]*dt*1000
-            if t == 0:
-                O2.Mpipe_acum.append(Mpipe_o2)
-            else:
-                O2.Mpipe_acum.append(Mpipe_o2 + O2.Mpipe_acum[-1])
-
-            Minfsz_o2 = WFR.tQinfsz[t]*O2.c_usz[t][USZ.m_usz-1]*dt*1000
-            if t == 0:
-                O2.Minfsz_acum.append(Minfsz_o2)
-            else:
-                O2.Minfsz_acum.append(Minfsz_o2 + O2.Minfsz_acum[-1])
-
-            Met_o2 = WFR.tQet[t]*O2.cl_i1[0]*dt*1000
-            if t == 0:
-                O2.Met_acum.append(Met_o2)
-            else:
-                O2.Met_acum.append(Met_o2 + O2.Met_acum[-1])
-
-            Mpz_o2 = WFR.thpEND[t]*PZ.Ab*1000*O2.cp[t]
-            O2.Mpz_list.append(Mpz_o2)
-
-
-            Mstor_o2_mb = O2.Min_acum[-1] - O2.Mpz_list[-1] - O2.Mover_acum[-1] - O2.Mpipe_acum[-1] - O2.Minfsz_acum[-1] - O2.Met_acum[-1] - O2.Msoil_acum[-1] - O2.MRx_acum[-1]
-            O2.Mstor_mb_list.append(Mstor_o2_mb)
-
-            delta_ast_o2_usz = (Mstor_o2_mb - Mstor_o2_ast)/(PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz)
-            O2.cl_i1[1] = O2.cl_i1[1] + delta_ast_o2_usz
-            if O2.cl_i1[1] > 0:
-                O2.cl_i1[1] = O2.cl_i1[1]
-            else:
-                O2.cl_i1[1] = 0
-
-            ### Amonia
-
-            Mstor_nh4_ast = sum(NH4.c_usz[t])*PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz
-            NH4.Mstor_ast_list.append(Mstor_nh4_ast)
-
-            Msoil_nh4_a = NH4.cs_usz_a*SOIL_PLANT.ro*PZ.Ab*WFR.thusz[t]*1000
-            Msoil_nh4 = sum(NH4.cs_usz[t])*SOIL_PLANT.ro*PZ.Ab*WFR.thusz[t]*1000/USZ.m_usz
-            NH4.Msoil_acum.append(Msoil_nh4 - Msoil_nh4_a)
-
-
-            MRx_nh4 = - (sum(NH4.Rx_usz[t])*PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz)
-            if t == 0:
-                NH4.MRx_acum.append(MRx_nh4)
-            else:
-                NH4.MRx_acum.append(MRx_nh4 + NH4.MRx_acum[-1])
-
-
-            Min_nh4 = tQin[t]*INFLOW_PARAMETERS.cin_nh4[t]*dt*1000
-            if t == 0:
-                NH4.Min_acum.append(Min_nh4)
-            else:
-                NH4.Min_acum.append(Min_nh4 + NH4.Min_acum[-1])
-
-            Mover_nh4 = WFR.tQover[t]*NH4.cp[t]*dt*1000
-            if t == 0:
-                NH4.Mover_acum.append(Mover_nh4)
-            else:
-                NH4.Mover_acum.append(Mover_nh4 + NH4.Mover_acum[-1])
-
-            Mpipe_nh4 = WFR.tQpipe[t]*NH4.c_usz[t][USZ.m_usz-1]*dt*1000
-            if t == 0:
-                NH4.Mpipe_acum.append(Mpipe_nh4)
-            else:
-                NH4.Mpipe_acum.append(Mpipe_nh4 + NH4.Mpipe_acum[-1])
-
-            Minfsz_nh4 = WFR.tQinfsz[t]*NH4.c_usz[t][USZ.m_usz-1]*dt*1000
-            if t == 0:
-                NH4.Minfsz_acum.append(Minfsz_nh4)
-            else:
-                NH4.Minfsz_acum.append(Minfsz_nh4 + NH4.Minfsz_acum[-1])
-
-            Met_nh4 = WFR.tQet[t]*NH4.cl_i1 [0]*dt*1000
-            if t == 0:
-                NH4.Met_acum.append(Met_nh4)
-            else:
-                NH4.Met_acum.append(Met_nh4 + NH4.Met_acum[-1])
-
-            Mpz_nh4 = WFR.thpEND[t]*PZ.Ab*1000*NH4.cp[t]
-            NH4.Mpz_list.append(Mpz_nh4)
-
-
-            Mstor_nh4_mb = NH4.Min_acum[-1] - NH4.Mpz_list[-1] - NH4.Mover_acum[-1] - NH4.Mpipe_acum[-1] - NH4.Minfsz_acum[-1] - NH4.Met_acum[-1] - NH4.Msoil_acum[-1] - NH4.MRx_acum[-1]
-            NH4.Mstor_mb_list.append(Mstor_nh4_mb)
-
-
-            delta_ast_nh4_usz = (Mstor_nh4_mb - Mstor_nh4_ast)/(PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz)
-            NH4.cl_i1 [1] = NH4.cl_i1 [1] + delta_ast_nh4_usz
-            if NH4.cl_i1 [1] > 0:
-                NH4.cl_i1 [1] = NH4.cl_i1 [1]
-            else:
-                NH4.cl_i1 [1] = 0
-
-            ### Nitrate
-
-            Mstor_no3_ast = sum(NO3.c_usz[t])*PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz
-            NO3.Mstor_ast_list.append(Mstor_no3_ast)
-
-            Msoil_no3_a = 0
-            Msoil_no3 = 0
-            NO3.Msoil_acum.append(0)
-
-
-            MRx_no3 = - (sum(NO3.Rx_usz[t])*PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz)
-            if t == 0:
-                NO3.MRx_acum.append(MRx_no3)
-            else:
-                NO3.MRx_acum.append(MRx_no3 + NO3.MRx_acum[-1])
-
-
-            Min_no3 = tQin[t]*INFLOW_PARAMETERS.cin_no3[t]*dt*1000
-            if t == 0:
-                NO3.Min_acum.append(Min_no3)
-            else:
-                NO3.Min_acum.append(Min_no3 + NO3.Min_acum[-1])
-
-            Mover_no3 = WFR.tQover[t]*NO3.cp[t]*dt*1000
-            if t == 0:
-                NO3.Mover_acum.append(Mover_no3)
-            else:
-                NO3.Mover_acum.append(Mover_no3 + NO3.Mover_acum[-1])
-
-            Mpipe_no3 = WFR.tQpipe[t]*NO3.c_usz[t][USZ.m_usz-1]*dt*1000
-            if t == 0:
-                NO3.Mpipe_acum.append(Mpipe_no3)
-            else:
-                NO3.Mpipe_acum.append(Mpipe_no3 + NO3.Mpipe_acum[-1])
-
-            Minfsz_no3 = WFR.tQinfsz[t]*NO3.c_usz[t][USZ.m_usz-1]*dt*1000
-            if t == 0:
-                NO3.Minfsz_acum.append(Minfsz_no3)
-            else:
-                NO3.Minfsz_acum.append(Minfsz_no3 + NO3.Minfsz_acum[-1])
-
-            Met_no3 = WFR.tQet[t]*NO3.cl_i1[0]*dt*1000
-            if t == 0:
-                NO3.Met_acum.append(Met_no3)
-            else:
-                NO3.Met_acum.append(Met_no3 + NO3.Met_acum[-1])
-
-            Mpz_no3 = WFR.thpEND[t]*PZ.Ab*1000*NO3.cp[t]
-            NO3.Mpz_list.append(Mpz_no3)
-
-
-            Mstor_no3_mb = NO3.Min_acum[-1] - NO3.Mpz_list[-1] - NO3.Mover_acum[-1] - NO3.Mpipe_acum[-1] - NO3.Minfsz_acum[-1] - NO3.Met_acum[-1] - NO3.Msoil_acum[-1] - NO3.MRx_acum[-1]
-            NO3.Mstor_mb_list.append(Mstor_no3_mb)
-
-            delta_ast_no3_usz = (Mstor_no3_mb - Mstor_no3_ast)/(PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz)
-            NO3.cl_i1[1] = NO3.cl_i1[1] + delta_ast_no3_usz
-            if NO3.cl_i1[1] > 0:
-                NO3.cl_i1[1] = NO3.cl_i1[1]
-            else:
-                NO3.cl_i1[1] = 0
-
-            ### DOC
-
-            Mstor_doc_ast = sum(DOC.c_usz[t])*PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz
-            DOC.Mstor_ast_list.append(Mstor_doc_ast)
-
-            Msoil_doc_a = DOC.cs_usz_a*SOIL_PLANT.ro*PZ.Ab*WFR.thusz[t]*1000
-            Msoil_doc = sum(DOC.cs_usz[t])*SOIL_PLANT.ro*PZ.Ab*WFR.thusz[t]*1000/USZ.m_usz
-            DOC.Msoil_acum.append(Msoil_doc - Msoil_doc_a)
-
-
-            MRx_doc = - (sum(DOC.Rx_usz[t])*PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz)
-            if t == 0:
-                DOC.MRx_acum.append(MRx_doc)
-            else:
-                DOC.MRx_acum.append(MRx_doc + DOC.MRx_acum[-1])
-
-
-            Min_doc = tQin[t]*INFLOW_PARAMETERS.cin_doc[t]*dt*1000
-            if t == 0:
-                DOC.Min_acum.append(Min_doc)
-            else:
-                DOC.Min_acum.append(Min_doc + DOC.Min_acum[-1])
-
-            Mover_doc = WFR.tQover[t]*DOC.cp[t]*dt*1000
-            if t == 0:
-                DOC.Mover_acum.append(Mover_doc)
-            else:
-                DOC.Mover_acum.append(Mover_doc + DOC.Mover_acum[-1])
-
-            Mpipe_doc = WFR.tQpipe[t]*DOC.c_usz[t][USZ.m_usz-1]*dt*1000
-            if t == 0:
-                DOC.Mpipe_acum.append(Mpipe_doc)
-            else:
-                DOC.Mpipe_acum.append(Mpipe_doc + DOC.Mpipe_acum[-1])
-
-            Minfsz_doc = WFR.tQinfsz[t]*DOC.c_usz[t][USZ.m_usz-1]*dt*1000
-            if t == 0:
-                DOC.Minfsz_acum.append(Minfsz_doc)
-            else:
-                DOC.Minfsz_acum.append(Minfsz_doc + DOC.Minfsz_acum[-1])
-
-            Met_doc = WFR.tQet[t]*DOC.cl_i1[0]*dt*1000
-            if t == 0:
-                DOC.Met_acum.append(Met_doc)
-            else:
-                DOC.Met_acum.append(Met_doc + DOC.Met_acum[-1])
-
-            Mpz_doc = WFR.thpEND[t]*PZ.Ab*1000*DOC.cp[t]
-            DOC.Mpz_list.append(Mpz_doc)
-
-
-            Mstor_doc_mb = DOC.Min_acum[-1] - DOC.Mpz_list[-1] - DOC.Mover_acum[-1] - DOC.Mpipe_acum[-1] - DOC.Minfsz_acum[-1] - DOC.Met_acum[-1] - DOC.Msoil_acum[-1] - DOC.MRx_acum[-1]
-            DOC.Mstor_mb_list.append(Mstor_doc_mb)
-
-            delta_ast_doc_usz = (Mstor_doc_mb - Mstor_doc_ast)/(PZ.Ab*WFR.tteta_usz[t]*WFR.thusz[t]*1000/USZ.m_usz)
-            DOC.cl_i1[1] = DOC.cl_i1[1] + delta_ast_doc_usz
-            if DOC.cl_i1[1] > 0:
-                DOC.cl_i1[1] = DOC.cl_i1[1]
-            else:
-                DOC.cl_i1[1] = 0
-
+            
+        ### Oxygen
+        O2.mass_storm_asterisk = O2.f_mass_storm_asterisk(t, PZ.Ab, WFR.tteta_usz, WFR.tteta_sz, USZ.m_usz, SZ.m_sz, WFR.thusz, WFR.thsz, GENERAL_PARAMETERS.hpipe)
+        O2.mass_soil = O2.f_mass_soil()
+        O2.mass_reaction_rate = O2.f_mass_reaction_rate(t, PZ.Ab, WFR.tteta_usz, WFR.tteta_sz, USZ.m_usz, SZ.m_sz, WFR.thusz, WFR.thsz, GENERAL_PARAMETERS.hpipe)
+        O2.mass_inflow = O2.f_mass_inflow(t, WFR.tQin, INFLOW_PARAMETERS.cin_o2, GENERAL_PARAMETERS.dt)
+        O2.mass_overflow = O2.f_mass_overflow(t, WFR.tQover, GENERAL_PARAMETERS.dt)
+        O2.mass_pipe_outflow = O2.f_mass_pipe_outflow(t, WFR.tQpipe, USZ.m_usz, SZ.m_sz, GENERAL_PARAMETERS.dt, GENERAL_PARAMETERS.hpipe)
+        O2.mass_infiltration_sz = O2.f_mass_infiltration_sz(t, WFR.tQinfsz, USZ.m_usz, SZ.m_sz, GENERAL_PARAMETERS.dt, GENERAL_PARAMETERS.hpipe)
+        O2.mass_evapotranspiration = O2.f_mass_evapotranspiration(t, WFR.tQet, GENERAL_PARAMETERS.dt)
+        O2.mass_pz = O2.f_mass_pz(t, WFR.thpEND, PZ.Ab)
+
+        O2.mass_balance.append(O2.f_mass_balance(t, O2.mass_storm_asterisk, O2.mass_soil, O2.mass_reaction_rate,
+                                                 O2.mass_inflow, O2.mass_overflow, O2.mass_pipe_outflow,
+                                                 O2.mass_infiltration_sz, O2.mass_evapotranspiration, O2.mass_pz))
+
+        O2.cl_i1[1] = O2.f_delta_mass_balance_usz(t, PZ.Ab, WFR.tteta_usz, WFR.thusz, USZ.m_usz)
+
+        ### Amonia
+        NH4.mass_storm_asterisk = NH4.f_mass_storm_asterisk(t, PZ.Ab, WFR.tteta_usz, WFR.tteta_sz, USZ.m_usz, SZ.m_sz, WFR.thusz, WFR.thsz, GENERAL_PARAMETERS.hpipe)
+        NH4.mass_soil = NH4.f_mass_soil(t, SOIL_PLANT.ro, PZ.Ab, WFR.thusz, WFR.thsz, USZ.m_usz, SZ.m_sz, GENERAL_PARAMETERS.hpipe)
+        NH4.mass_reaction_rate = NH4.f_mass_reaction_rate(t, PZ.Ab, WFR.tteta_usz, WFR.tteta_sz, USZ.m_usz, SZ.m_sz, WFR.thusz, WFR.thsz, GENERAL_PARAMETERS.hpipe)
+        NH4.mass_inflow = NH4.f_mass_inflow(t, WFR.tQin, INFLOW_PARAMETERS.cin_nh4, GENERAL_PARAMETERS.dt)
+        NH4.mass_overflow = NH4.f_mass_overflow(t, WFR.tQover, GENERAL_PARAMETERS.dt)
+        NH4.mass_pipe_outflow = NH4.f_mass_pipe_outflow(t, WFR.tQpipe, USZ.m_usz, SZ.m_sz, GENERAL_PARAMETERS.dt, GENERAL_PARAMETERS.hpipe)
+        NH4.mass_infiltration_sz = NH4.f_mass_infiltration_sz(t, WFR.tQinfsz, USZ.m_usz, SZ.m_sz, GENERAL_PARAMETERS.dt, GENERAL_PARAMETERS.hpipe)
+        NH4.mass_evapotranspiration = NH4.f_mass_evapotranspiration(t, WFR.tQet, GENERAL_PARAMETERS.dt)
+        NH4.mass_pz = NH4.f_mass_pz(t, WFR.thpEND, PZ.Ab)
+
+        NH4.mass_balance.append(NH4.f_mass_balance(t, NH4.mass_storm_asterisk, NH4.mass_soil, NH4.mass_reaction_rate,
+                                                 NH4.mass_inflow, NH4.mass_overflow, NH4.mass_pipe_outflow,
+                                                 NH4.mass_infiltration_sz, NH4.mass_evapotranspiration, NH4.mass_pz))
+
+        NH4.cl_i1[1] = NH4.f_delta_mass_balance_usz(t, PZ.Ab, WFR.tteta_usz, WFR.thusz, USZ.m_usz)
+
+
+        ### Nitrate
+        NO3.mass_storm_asterisk = NO3.f_mass_storm_asterisk(t, PZ.Ab, WFR.tteta_usz, WFR.tteta_sz, USZ.m_usz, SZ.m_sz, WFR.thusz, WFR.thsz, GENERAL_PARAMETERS.hpipe)
+        NO3.mass_soil = NO3.f_mass_soil()
+        NO3.mass_reaction_rate = NO3.f_mass_reaction_rate(t, PZ.Ab, WFR.tteta_usz, WFR.tteta_sz, USZ.m_usz, SZ.m_sz, WFR.thusz, WFR.thsz, GENERAL_PARAMETERS.hpipe)
+        NO3.mass_inflow = NO3.f_mass_inflow(t, WFR.tQin, INFLOW_PARAMETERS.cin_no3, GENERAL_PARAMETERS.dt)
+        NO3.mass_overflow = NO3.f_mass_overflow(t, WFR.tQover, GENERAL_PARAMETERS.dt)
+        NO3.mass_pipe_outflow = NO3.f_mass_pipe_outflow(t, WFR.tQpipe, USZ.m_usz, SZ.m_sz, GENERAL_PARAMETERS.dt, GENERAL_PARAMETERS.hpipe)
+        NO3.mass_infiltration_sz = NO3.f_mass_infiltration_sz(t, WFR.tQinfsz, USZ.m_usz, SZ.m_sz, GENERAL_PARAMETERS.dt, GENERAL_PARAMETERS.hpipe)
+        NO3.mass_evapotranspiration = NO3.f_mass_evapotranspiration(t, WFR.tQet, GENERAL_PARAMETERS.dt)
+        NO3.mass_pz = NO3.f_mass_pz(t, WFR.thpEND, PZ.Ab)
+
+        NO3.mass_balance.append(NO3.f_mass_balance(t, NO3.mass_storm_asterisk, NO3.mass_soil, NO3.mass_reaction_rate,
+                                                 NO3.mass_inflow, NO3.mass_overflow, NO3.mass_pipe_outflow,
+                                                 NO3.mass_infiltration_sz, NO3.mass_evapotranspiration, NO3.mass_pz))
+
+        NO3.cl_i1[1] = NO3.f_delta_mass_balance_usz(t, PZ.Ab, WFR.tteta_usz, WFR.thusz, USZ.m_usz)
+
+
+        ### DOC
+
+        DOC.mass_storm_asterisk = DOC.f_mass_storm_asterisk(t, PZ.Ab, WFR.tteta_usz, WFR.tteta_sz, USZ.m_usz, SZ.m_sz, WFR.thusz, WFR.thsz, GENERAL_PARAMETERS.hpipe)
+        DOC.mass_soil = DOC.f_mass_soil(t, SOIL_PLANT.ro, PZ.Ab, WFR.thusz, WFR.thsz, USZ.m_usz, SZ.m_sz, GENERAL_PARAMETERS.hpipe)
+        DOC.mass_reaction_rate = DOC.f_mass_reaction_rate(t, PZ.Ab, WFR.tteta_usz, WFR.tteta_sz, USZ.m_usz, SZ.m_sz, WFR.thusz, WFR.thsz, GENERAL_PARAMETERS.hpipe)
+        DOC.mass_inflow = DOC.f_mass_inflow(t, WFR.tQin, INFLOW_PARAMETERS.cin_doc, GENERAL_PARAMETERS.dt)
+        DOC.mass_overflow = DOC.f_mass_overflow(t, WFR.tQover, GENERAL_PARAMETERS.dt)
+        DOC.mass_pipe_outflow = DOC.f_mass_pipe_outflow(t, WFR.tQpipe, USZ.m_usz, SZ.m_sz, GENERAL_PARAMETERS.dt, GENERAL_PARAMETERS.hpipe)
+        DOC.mass_infiltration_sz = DOC.f_mass_infiltration_sz(t, WFR.tQinfsz, USZ.m_usz, SZ.m_sz, GENERAL_PARAMETERS.dt, GENERAL_PARAMETERS.hpipe)
+        DOC.mass_evapotranspiration = DOC.f_mass_evapotranspiration(t, WFR.tQet, GENERAL_PARAMETERS.dt)
+        DOC.mass_pz = DOC.f_mass_pz(t, WFR.thpEND, PZ.Ab)
+
+        DOC.mass_balance.append(DOC.f_mass_balance(t, DOC.mass_storm_asterisk, DOC.mass_soil, DOC.mass_reaction_rate,
+                                                 DOC.mass_inflow, DOC.mass_overflow, DOC.mass_pipe_outflow,
+                                                 DOC.mass_infiltration_sz, DOC.mass_evapotranspiration, DOC.mass_pz))
+
+        DOC.cl_i1[1] = DOC.f_delta_mass_balance_usz(t, PZ.Ab, WFR.tteta_usz, WFR.thusz, USZ.m_usz)
 
 
     ## adding layers of USZ in time
