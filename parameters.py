@@ -482,6 +482,33 @@ class Nutrient:
             concentration = 0
         return concentration
 
+    def water_quality_results(self, m_usz, m_sz, inflow_concentration):
+        columns_name = ["usz" + str(num) for num in range(m_usz)]
+        columns_name += ["sz" + str(num) for num in range(m_sz)]
+        if len(self.cs_usz) != 0:
+            columns_name += ["usz_soil" + str(num) for num in range(m_usz)]
+        if len(self.cs_sz) != 0:
+            columns_name += ["sz_soil" + str(num) for num in range(m_sz)]
+        columns_name += ["usz_rx" + str(num) for num in range(m_usz)]
+        columns_name += ["sz_rx" + str(num) for num in range(m_sz)]
+
+
+        df_usz = pd.DataFrame(self.c_usz)
+        df_sz = pd.DataFrame(self.c_sz)
+        df_soil_usz = pd.DataFrame(self.cs_usz)
+        df_soil_sz = pd.DataFrame(self.cs_sz)
+        df_rx_usz = pd.DataFrame(self.Rx_usz)
+        df_rx_sz = pd.DataFrame(self.Rx_sz)
+        frames = [df_usz, df_sz, df_soil_usz, df_soil_sz, df_rx_usz, df_rx_sz]
+        df = pd.concat(frames, axis=1)
+        df.columns = columns_name
+
+        self.cp.append(0)
+        df['pz'] = self.cp
+        df['c_in'] = inflow_concentration
+        df['t'] = list(range(len(self.c_usz)))
+        return df
+
 
 class Ammonia(Nutrient):
     def __init__(self, m_usz, m_sz, setup_file):
@@ -513,6 +540,8 @@ class Nitrate(Nutrient):
         super(Nitrate, self).__init__(m_usz, m_sz)
         setup = configparser.ConfigParser()
         setup.read(setup_file)
+        self.cs_usz = []
+        self.cs_sz = []
         self.D = float(setup['NO3']['D_no3'])
         self.Fm_no3 = float(setup['NO3']['Fm_no3'])
         self.Km_no3 = float(setup['NO3']['Km_no3'])
@@ -547,11 +576,14 @@ class Oxygen(Nutrient):
         super(Oxygen, self).__init__(m_usz, m_sz)
         setup = configparser.ConfigParser()
         setup.read(setup_file)
+        self.cs_usz = []
+        self.cs_sz = []
         self.D = float(setup['O2']['D_o2'])
         self.K_o2 = float(setup['O2']['k_inib_o2'])  # perguntar pq K no lugar de k_inib_02
         self.k_o2 = float(setup['O2']['k_o2'])
         self.kads = 0
         self.kdes = 0
+
         
     def f_reaction_pz(self):
         return 0
@@ -600,5 +632,3 @@ class DissolvedOrganicCarbon(Nutrient):
     def f_reaction_sz(self, C_doc_iminus1):
         reaction = -self.k_doc * C_doc_iminus1 + self.bDOCd
         return reaction
-        
-
