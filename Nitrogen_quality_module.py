@@ -1,6 +1,5 @@
 import parameters
 import datetime
-import pandas as pd
 import results_tests
 
 SETUP_FILE = "parameters.ini"

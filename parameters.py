@@ -12,6 +12,43 @@ class ConcentrationInflow:
         self.cin_doc = csv_file['doc'].tolist()
 
 
+class WaterInflow:
+    def __init__(self, file):
+        csv_file = pd.read_csv(file, sep=";")
+        self.tQin = csv_file["Qin"]
+        self.tEmax = csv_file["ET"]
+        self.tQrain = csv_file["Qrain"]
+
+
+class WaterFlowResults:
+    def __init__(self, tQrain, tQin, tEmax):
+        self.indice = list(range(0, len(tQrain)))
+        self.tt = []
+        self.tQover = []
+        self.tQpf = []
+        self.tQinfp = []
+        self.tQfs = []
+        self.tQhc = []
+        self.tQet = []
+        self.tQinfsz = []
+        self.tQpipe = []
+        self.tQet1 = []
+        self.tQet2 = []
+        self.thp = []
+        self.ts = []
+        self.thusz = []
+        self.thsz = []
+        self.thszEST = []
+        self.tnsz = []
+        self.tnusz = []
+        self.thpEND = []
+        self.tteta_usz = []
+        self.tteta_sz = []
+        self.tQin = tQin
+        self.tQrain = tQrain
+        self.tEmax = tEmax
+
+
 class GeneralParameters:
     def __init__(self, setup_file):
         setup = configparser.ConfigParser()
