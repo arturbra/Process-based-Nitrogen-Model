@@ -100,80 +100,11 @@ def run_W():
 
 if __name__ == '__main__':
     inicio = datetime.datetime.now()
-    
-    run_W()         
-    
-    ###   6. Saving the results in CSV
-    
-    dict_data = {
-        't': WFR.tt,
-        'Qin': WFR.tQin[:len(WFR.tt)],
-        'Qet': WFR.tQet[:len(WFR.tt)],
-        'hpEND': WFR.thpEND[:len(WFR.tt)],
-        'Qpf': WFR.tQpf[:len(WFR.tt)],
-        'Qover': WFR.tQover[:len(WFR.tt)],
-        'Qfs': WFR.tQfs[:len(WFR.tt)],
-        'Qet_1': WFR.tQet1[:len(WFR.tt)],
-        'Qhc': WFR.tQhc[:len(WFR.tt)],
-        'Qpipe': WFR.tQpipe[:len(WFR.tt)],
-        'Qet_2': WFR.tQet2[:len(WFR.tt)],
-        'teta_usz': WFR.tteta_usz[:len(WFR.tt)],
-        'teta_sz': WFR.tteta_sz[:len(WFR.tt)],
-        'Qrain': WFR.tQrain[:len(WFR.tt)],
-        'Qinfp': WFR.tQinfp[:len(WFR.tt)],
-        'Qinfsz': WFR.tQinfsz[:len(WFR.tt)],
-        'hp': WFR.thp[:len(WFR.tt)],
-        's': WFR.ts[:len(WFR.tt)],
-        'husz': WFR.thusz[:len(WFR.tt)],
-        'hsz': WFR.thsz[:len(WFR.tt)],
-        'nsz': WFR.tnsz[:len(WFR.tt)],
-        'nusz': WFR.tnusz[:len(WFR.tt)],
-        'hszEST': WFR.thszEST[:len(WFR.tt)]
-             }
-    
-    
-    data = pd.DataFrame(dict_data)
-
-      
+    run_W()
     #Uncomment this line to generate the .csv with the results
     #data.to_csv('water_flow_results.csv', index = False)
-    
-    ###  5. Water balance
-    
-    Qin_total = data['Qin'].sum()
-    Vtotal_in = Qin_total * GENERAL_PARAMETERS.dt
-    
-    Qover_total = data['Qover'].sum()
-    Vtotal_over = Qover_total * GENERAL_PARAMETERS.dt
-
-    
-    Qpipe_total = data['Qpipe'].sum()
-    Vtotal_pipe = Qpipe_total * GENERAL_PARAMETERS.dt
-    
-    Qpeak_over = data['Qover'].max()
-    
-    Qpf_total = data['Qpf'].sum()
-    Vtotal_pf = Qpf_total * GENERAL_PARAMETERS.dt
-    
-    Qfs_total = data['Qfs'].sum()
-    Vtotal_fs = Qfs_total * GENERAL_PARAMETERS.dt
-    
-    Smax = data['s'].max()
-    
-    hmax = data['hp'].max()
-    
-    tpeak = data.loc[data['Qover'] == Qpeak_over, 't'].iloc[0]
-    
-    print('Vtotal_in :', Vtotal_in) #m3
-    print('Vtotal_over :', Vtotal_over) #m3
-    print('Vtotal_pipe (m3):', Vtotal_pipe) #m3
-    print('Vtotal_pf :', Vtotal_pf) #m3
-    print('Vtotal_fs :', Vtotal_fs) #m3
-    print('Qpeak_over :', Qpeak_over*1000) #L/s
-    print('Smax :', Smax) #m3
-    print('hmax :', hmax) #m
-    print('tpeak :', tpeak) #min
+    WFR.water_balance(GENERAL_PARAMETERS.dt)
     fim = datetime.datetime.now()
     print('Elapsed time: ',fim - inicio)
-    wf_test = results_tests.water_flow_comparison_test("results/water_flow_results.csv", WFR)
-    print(len(wf_test))
+    # wf_test = results_tests.water_flow_comparison_test("results/water_flow_results.csv", WFR)
+    # print(len(wf_test))

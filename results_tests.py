@@ -4,7 +4,7 @@ import pandas as pd
 def water_flow_comparison_test(original_water_flow_results_file, WFR):
     water_flow_results = pd.read_csv(original_water_flow_results_file)
     water_flow_results = water_flow_results.round(decimals=4)
-    water_flow_att = [att for att in dir(WFR) if not att.startswith("__")]
+    water_flow_att = [att for att in dir(WFR) if not (att.startswith("__") or att == "water_balance")]
     a = [getattr(WFR, att) for att in water_flow_att]
     b = pd.DataFrame(a)
     b = b.transpose()

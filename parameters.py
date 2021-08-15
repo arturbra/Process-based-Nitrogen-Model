@@ -49,6 +49,33 @@ class WaterFlowResults:
         self.tEmax = tEmax
         self.indice = list(range(0, len(self.tQrain)))
 
+    def water_balance(self, dt):
+        Qin_total = self.tQin.sum()
+        Qover_total = pd.array(self.tQover).sum()
+        Qpipe_total = pd.array(self.tQpipe).sum()
+        Qpeak_over = pd.array(self.tQover).max()
+        Qpf_total = pd.array(self.tQpf).sum()
+        Qfs_total = pd.array(self.tQfs).sum()
+
+        Vtotal_in = Qin_total * dt
+        Vtotal_over = Qover_total * dt
+        Vtotal_pipe = Qpipe_total * dt
+        Vtotal_pf = Qpf_total * dt
+        Vtotal_fs = Qfs_total * dt
+
+        Smax = pd.array(self.ts).max()
+        hmax = pd.array(self.thp).max()
+
+        print('Vtotal_in :', Vtotal_in)  # m3
+        print('Vtotal_over :', Vtotal_over)  # m3
+        print('Vtotal_pipe (m3):', Vtotal_pipe)  # m3
+        print('Vtotal_pf :', Vtotal_pf)  # m3
+        print('Vtotal_fs :', Vtotal_fs)  # m3
+        print('Qpeak_over :', Qpeak_over * 1000)  # L/s
+        print('Smax :', Smax)  # m3
+        print('hmax :', hmax)  # m
+
+
 class GeneralParameters:
     def __init__(self, setup_file):
         setup = configparser.ConfigParser()
