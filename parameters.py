@@ -47,7 +47,7 @@ class WaterFlowResults:
         self.tQin = tQin
         self.tQrain = tQrain
         self.tEmax = tEmax
-
+        self.indice = list(range(0, len(self.tQrain)))
 
 class GeneralParameters:
     def __init__(self, setup_file):
@@ -98,6 +98,39 @@ class PondingZone:
             concentration = 0
         return concentration
 
+    def f_evapotranspiration(self, sw, sh, ss, Kc, Emax, A, sEST, dt):
+        if sEST <= sh:
+            evapotranspiration = 0.0
+        elif sEST <= sw:
+            evapotranspiration = A * Emax * Kc * (sEST - sh) / (sw - sh)
+        elif sEST <= ss:
+            evapotranspiration = A * Emax * Kc * (sEST - sw) / (ss - sw)
+        else:
+            evapotranspiration = A * Emax * Kc
+
+        Qet = evapotranspiration / (dt * 1000)
+        return evapotranspiration
+
+    def f_weir_overflow(self, hp, dt, Qin, Qrain):
+        volume = hp * self.Ab + dt * (Qin + Qrain)
+        if volume > self.Hover * self.Ab:
+            height = volume / self.Ab
+            weir_overflow = min((height - self.Hover) * self.Ab / dt, self.kWeir * (height - self.Hover) ** self.expWeir)
+        else:
+            weir_overflow = 0
+        return weir_overflow
+
+    def f_infiltration_to_surrounding(self, Kf, A, hpEST):
+        if self.flagp == 1:
+            infiltration = 0
+        else:
+            infiltration = Kf * ((self.Ab - A) + self.Cs * self.Pp * hpEST)
+        return infiltration
+
+    def f_infiltration_to_filter_material(self, Ks, hp, husz, A, dt, s, nusz, Qinfp):
+        infiltration = min(Ks * A * (hp + husz) / husz, hp * self.Ab / dt - Qinfp, (1.0 - s) * nusz * husz * A / dt)
+        return infiltration
+
 
 class UnsaturatedZone:
     def __init__(self, setup_file, L, hpipe, dz):
@@ -115,11 +148,36 @@ class UnsaturatedZone:
         self.Kf = float(setup['UNSATURATED_ZONE']['Kf'])
         self.m_usz = round((L - hpipe) / dz)
 
+    def f_capillary_rise(self, Emax, sEST, Kc):
+        s2 = sEST
+        den = self.sfc - self.ss
+        if den == 0:
+            den = 0.000001
+        Cr = 4 * Emax * Kc / (2.5 * (den) ** 2)
+        if s2 >= self.ss and s2 <= self.sfc:
+            capillary_rise = self.A * Cr * (s2 - self.ss) * (self.sfc - s2)
+        else:
+            capillary_rise = 0
+        return capillary_rise
+
+    def f_infiltration_to_sz(self, hp, husz, nusz, dt, sEST):
+        if sEST >= self.sfc:
+            Qfs = min((self.A * self.Ks * (hp + husz) / husz) * sEST ** self.gama, (sEST - self.sfc) * nusz * self.A * husz / dt)
+        else:
+            Qfs = 0
+        return Qfs
+
+    def f_porosity(self, husz, hsz, ng, Dg, Df):
+        if hsz < Dg:
+            nusz = (self.nusz_ini * Df + ng * (Dg - hsz)) / husz
+        else:
+            nusz = self.nusz_ini
+        return nusz
+
     def f_alfa_beta(self, layer):
         alfa = (self.m_usz - 1 - layer) / (self.m_usz - 1)
         beta = layer / (self.m_usz - 1)
         return alfa, beta
-
 
     def f_unit_flux(self, l, Qpf, Qet_1, Qfs, Qhc, Qorif, Qinf_sz, teta_sm_i, Ab, hpipe):
         alfa, beta = self.f_alfa_beta(l)
@@ -129,7 +187,6 @@ class UnsaturatedZone:
             unit_flux = (alfa * (Qpf - Qet_1) + beta * (Qorif + Qinf_sz - Qhc)) / \
                         (Ab * teta_sm_i)
         return unit_flux
-
 
     def f_peclet(self, unit_flux, D, dz):
         if D > 0:
@@ -146,6 +203,34 @@ class SaturatedZone:
         self.Psz = float(setup['SATURATED_ZONE']['Psz'])
         self.flagsz = float(setup['SATURATED_ZONE']['flagsz'])
         self.m_sz = n - m_usz
+
+    def f_infiltration_to_surround(self, Kf, A, Cs, hszEST):
+        if self.flagsz == 1:  # lined
+            infiltration_to_surround = 0.0
+        else:
+            infiltration_to_surround = Kf * (A + Cs * self.Psz * hszEST)
+        return infiltration_to_surround
+
+    def f_underdrain_flow(self, hpipe, A, nsz, dt, Qinfsz, Apipe, hszEST, Cd):
+        if hszEST <= hpipe:
+            underdrain_flow = 0
+        else:
+            underdrain_flow_max = (hszEST - hpipe) * A * nsz / dt - Qinfsz
+            underdrain_flow_max = max(0, underdrain_flow_max)
+            underdrain_flow_possible = Cd * Apipe * ((hszEST - hpipe) * 2 * 9.81) ** 0.5
+            underdrain_flow_possible = max(0, underdrain_flow_possible)
+            underdrain_flow = min(underdrain_flow_max, underdrain_flow_possible)
+
+        return underdrain_flow
+
+    def f_porosity(self, hsz, L, Dt, Dg, nf, nt, ng):
+        if hsz > Dt + Dg and hsz <= L:
+            nsz = ((ng * Dg + nt * Dt + nf * (hsz - Dg - Dt))) / hsz
+        elif hsz > Dg and hsz <= Dg + Dt:
+            nsz = (ng * Dg + nt * (hsz - Dg)) / hsz
+        else:
+            nsz = ng
+        return nsz
 
     def f_alfa_beta(self, layer):
         alfa = (self.m_sz - 1 - layer) / (self.m_sz - 1)

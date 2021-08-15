@@ -15,7 +15,6 @@ O2 = parameters.Oxygen(USZ.m_usz, SZ.m_sz, SETUP_FILE)
 DOC = parameters.DissolvedOrganicCarbon(USZ.m_usz, SZ.m_sz, SETUP_FILE)
 
 
-# **4. Model routine**
 def run_Kin():
     for t in range(len(WFR.indice)-1):
         #Ponding zone
