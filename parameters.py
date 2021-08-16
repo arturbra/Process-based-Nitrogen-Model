@@ -111,7 +111,7 @@ class PondingZone:
         setup.read(setup_file)
         self.Ab = float(setup['PONDING_ZONE']['Ap'])
         self.Hover = float(setup['PONDING_ZONE']['Hover'])
-        self.Kweir = float(setup['PONDING_ZONE']['Kweir'])
+        self.kWeir = float(setup['PONDING_ZONE']['Kweir'])
         self.wWeir = float(setup['PONDING_ZONE']['wWeir'])
         self.expWeir = float(setup['PONDING_ZONE']['expWeir'])
         self.Cs = float(setup['PONDING_ZONE']['Cs'])
@@ -352,7 +352,7 @@ class SoilPlant:
         return plant_uptake
 
 
-class Nutrient:
+class Pollutant:
     def __init__(self, m_usz, m_sz):
         self.cp_a = 0
         self.cs_usz_a = 0
@@ -546,8 +546,8 @@ class Nutrient:
         mass_soil_before_usz = self.cs_usz_a * ro * Ab * husz[time] * 1000
         mass_soil_now_usz = sum(self.cs_usz[time]) * ro * Ab * husz[time] * 1000 / m_usz
         if hpipe > 0:
-            mass_soil_before_sz = self.cs_sz_a * ro * Ab * hsz * 1000
-            mass_soil_now_sz = sum(self.cs_sz[time]) * ro * Ab * hsz * 1000 / m_sz
+            mass_soil_before_sz = self.cs_sz_a * ro * Ab * hsz[time] * 1000
+            mass_soil_now_sz = sum(self.cs_sz[time]) * ro * Ab * hsz[time] * 1000 / m_sz
         else:
             mass_soil_before_sz = 0
             mass_soil_now_sz = 0
@@ -659,7 +659,7 @@ class Nutrient:
         return df
 
 
-class Ammonia(Nutrient):
+class Ammonia(Pollutant):
     def __init__(self, m_usz, m_sz, setup_file):
         super(Ammonia, self).__init__(m_usz, m_sz)
         setup = configparser.ConfigParser()
@@ -684,7 +684,7 @@ class Ammonia(Nutrient):
     def f_reaction_sz(self):
         return 0
 
-class Nitrate(Nutrient):
+class Nitrate(Pollutant):
     def __init__(self, m_usz, m_sz, setup_file):
         super(Nitrate, self).__init__(m_usz, m_sz)
         setup = configparser.ConfigParser()
@@ -716,11 +716,14 @@ class Nitrate(Nutrient):
     def concentration_soil_phase_usz(self):
         return 0
 
+    def concentration_soil_phase_sz(self):
+        return 0
+
     def f_mass_soil(self):
         return 0
 
 
-class Oxygen(Nutrient):
+class Oxygen(Pollutant):
     def __init__(self, m_usz, m_sz, setup_file):
         super(Oxygen, self).__init__(m_usz, m_sz)
         setup = configparser.ConfigParser()
@@ -755,7 +758,7 @@ class Oxygen(Nutrient):
         return 0
 
 
-class DissolvedOrganicCarbon(Nutrient):
+class DissolvedOrganicCarbon(Pollutant):
     def __init__(self, m_usz, m_sz, setup_file):
         super(DissolvedOrganicCarbon, self).__init__(m_usz, m_sz)
         setup = configparser.ConfigParser()

@@ -108,3 +108,5 @@ if __name__ == '__main__':
     print('Elapsed time: ',fim - inicio)
     # wf_test = results_tests.water_flow_comparison_test("results/water_flow_results.csv", WFR)
     # print(len(wf_test))
+
+

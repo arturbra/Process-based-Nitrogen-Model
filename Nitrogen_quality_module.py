@@ -1,7 +1,6 @@
 import parameters
 import datetime
 import results_tests
-from Water_flow_module import run_W
 
 SETUP_FILE = "parameters.ini"
 INFLOW_PARAMETERS = parameters.ConcentrationInflow("concentration_inflow.csv")
@@ -20,9 +19,6 @@ DOC = parameters.DissolvedOrganicCarbon(USZ.m_usz, SZ.m_sz, SETUP_FILE)
 
 def run_W():
     hpEND = 0
-    sEST = 0
-    hszEST = 0
-    hp = 0.0
     husz = USZ.husz_ini
 
     if GENERAL_PARAMETERS.hpipe > 0:
@@ -256,9 +252,9 @@ def run_Kin():
 
             O2.cs = O2.concentration_soil_phase_sz()
             NO3.cs = NO3.concentration_soil_phase_sz()
-            NH4.csi_sz.append(NH4.concentration_soil_phase_sz(j, t, WFR.tteta_sz[t], NH4.cji[l], SOIL_PLANT.ro, GENERAL_PARAMETERS.dt, 0.0000000000000001, kmicro=NH4.k_nh4_mb))
+            NH4.csi_sz.append(NH4.concentration_soil_phase_sz(j, t, WFR.tteta_sz[t], NH4.cji[j], SOIL_PLANT.ro, GENERAL_PARAMETERS.dt, 0.0000000000000001, kmicro=NH4.k_nh4_mb))
             NH4.cs_sz_a = NH4.cs_sz[t][j]
-            DOC.csi_sz.append(DOC.concentration_soil_phase(j, t,  WFR.tteta_sz[t], DOC.cji[l], SOIL_PLANT.ro, GENERAL_PARAMETERS.dt, 0.0000000000000001, kmicro=DOC.k_doc_mb))
+            DOC.csi_sz.append(DOC.concentration_soil_phase_sz(j, t,  WFR.tteta_sz[t], DOC.cji[j], SOIL_PLANT.ro, GENERAL_PARAMETERS.dt, 0.0000000000000001, kmicro=DOC.k_doc_mb))
             DOC.cs_sz_a = DOC.cs_sz[t][j]
             
             SZ.unit_flux = SZ.f_unit_flux(j, WFR.tQfs[t], WFR.tQhc[t], WFR.tQet2[t], Qorif, WFR.tQinfsz[t], WFR.tteta_sz[t], PZ.Ab)
