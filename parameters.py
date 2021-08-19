@@ -119,8 +119,8 @@ class PondingZone:
         self.flagp = float(setup['PONDING_ZONE']['flagp'])
         self.k_denit_pz = float(setup['DENITRIFICATION']['k_denit_pz'])
 
-    def f_concentration(self, cin, Qin_p, cp_a, I1, Qv, Rxi, hp, hp_a, Ab, dt, threshold):
-        concentration = (cp_a * hp_a * Ab + (cin * Qin_p - cp_a * (I1 + Qv) + Rxi * hp * Ab) * dt) / (hp * Ab)
+    def f_concentration(self, cin, Qin_p, cp_a, I1, Qv, Rxi, hp, hp_a, dt, threshold):
+        concentration = (cp_a * hp_a * self.Ab + (cin * Qin_p - cp_a * (I1 + Qv) + Rxi * hp * self.Ab) * dt) / (hp * self.Ab)
         if concentration < threshold:
             concentration = 0
         return concentration
@@ -337,20 +337,6 @@ class SoilPlant:
         self.c_o2_root = float(setup['SOIL_PLANT']['c_o2_root'])
         self.ro = (1 - nusz_ini) * self.ro_pd
 
-    def f_plant_uptake_usz(self, concentration, teta_sm, parameter, root_influx=0, michaelis_uptake_constant=0):
-        if parameter == "O2":
-            plant_uptake = -self.root_fraction * (self.lamda * (teta_sm * self.c_o2_root - teta_sm * concentration))
-        else:
-            plant_uptake = -self.root_fraction * (root_influx * teta_sm * concentration / (michaelis_uptake_constant + teta_sm * concentration))
-        return plant_uptake
-
-    def f_plant_uptake_sz(self, concentration, teta_b, parameter, root_influx=0, michaleis_uptake_constant=0):
-        if parameter == "O2":
-            plant_uptake = -self.root_fraction * (self.lamda * (teta_b * self.c_o2_root - teta_b * concentration))
-        else:
-            plant_uptake = -self.root_fraction * (root_influx * teta_b * concentration / (michaleis_uptake_constant + teta_b * concentration))
-        return plant_uptake
-
 
 class Pollutant:
     def __init__(self, m_usz, m_sz):
@@ -368,6 +354,7 @@ class Pollutant:
         self.c_sz = [self.c0_sz]
         self.cl_i1 = []
         self.csi_usz = []
+        self.csi_sz = []
         self.Rxl = []
         self.cs_sz = [self.c0_sz]
         self.Rx_pz = 0
@@ -397,12 +384,11 @@ class Pollutant:
 
     def f_concentration_soil(self, cs_a, teta, kads, ci, kdes, ro, dt, method="FO", kmicro=0, Um=0, Km=0):
         if method == "FO":
-            Rxs = kmicro * cs_a
+            #Rxs = kmicro * cs_a
+            Rxs = 0
         if method == "MM":
             Rxs = Um * (teta * cs_a / (Km + teta * cs_a))
-
         cs_abs = cs_a + ((teta / ro) * kads * ci - kdes * cs_a - Rxs) * dt
-
         if cs_abs <= 0:
             cs = 0
         else:
@@ -423,21 +409,19 @@ class Pollutant:
             cjplus1 = 0
         return cjplus1
 
-    def concentration_soil_phase_usz(self, usz_layer, time, teta, ci, ro, dt, threshold, method="FO", kmicro=0, Um=0, Km=0):
-        self.cs = self.cs_usz[time][usz_layer]
-        cs_next_iteration = self.f_concentration_soil(self.cs, teta, self.kads, ci, self.kdes, ro, dt, method, kmicro, Um, Km)
+    def concentration_soil_phase_usz(self, usz_layer, time, teta, ro, dt, threshold, method="FO", kmicro=0, Um=0, Km=0):
+        cs_next_iteration = self.f_concentration_soil(self.cs_usz[time][usz_layer], teta, self.kads, self.cli[usz_layer], self.kdes, ro, dt, method, kmicro, Um, Km)
         if cs_next_iteration < threshold:
             cs_next_iteration = 0
         return cs_next_iteration
 
-    def concentration_soil_phase_sz(self, sz_layer, time, teta, ci, ro, dt, threshold, method= "FO", kmicro = 0, Um=0, Km=0):
-        self.cs =self.cs_sz[time][sz_layer]
-        cs_next_iteration = self.f_concentration_soil(self.cs, teta, self.kads2, ci, self.kdes2, ro, dt, method, kmicro, Um, Km)
+    def concentration_soil_phase_sz(self, sz_layer, time, teta, ro, dt, threshold, method= "FO", kmicro = 0, Um=0, Km=0):
+        cs_next_iteration = self.f_concentration_soil(self.cs_sz[time][sz_layer], teta, self.kads2, self.cji[sz_layer], self.kdes2, ro, dt, method, kmicro, Um, Km)
         if cs_next_iteration < threshold:
             cs_next_iteration = 0
         return(cs_next_iteration)
 
-    def concentration_delta_usz(self, peclet, usz_layer, m_usz, dz, teta_usz, teta_sm_iplus1, uf, dt, ro, f, threshold):
+    def concentration_delta_usz(self, time, peclet, usz_layer, m_usz, dz, teta_usz, teta_sm_iplus1, uf, dt, ro, f, threshold):
         if peclet <= 2:
             if usz_layer == 0:
                 dc = self.cliplus1 - 2 * self.cli[usz_layer] + self.cpi
@@ -459,7 +443,7 @@ class Pollutant:
                 dc = self.cliplus1 - 2 * self.cli[usz_layer] + self.cli[usz_layer - 1]
                 dc_dz = (self.cli[usz_layer] - self.cli[usz_layer - 1]) / dz
 
-        delta_concentration = self.f_transport(teta_usz, teta_sm_iplus1, self.cli[usz_layer], self.cs, dc, dc_dz,
+        delta_concentration = self.f_transport(teta_usz, teta_sm_iplus1, self.cli[usz_layer], self.cs_usz[time][usz_layer], dc, dc_dz,
                                                self.kads, self.kdes, self.D, uf, self.Rxi_usz, dt, ro, f, dz)
         if teta_sm_iplus1 > 0:
             concentration = self.cli[usz_layer] + delta_concentration
@@ -468,63 +452,66 @@ class Pollutant:
 
         if concentration <= threshold:
             concentration = 0
-
         return concentration
 
     def concentration_delta_sz(self, m_usz, m_sz, n, peclet, sz_layer, dz, teta_sz, teta_b_iplus1, uf, dt, ro, f, threshold):
+        concentration_sz = self.cji[sz_layer]
+        concentration_last_layer_usz = self.cli[m_usz - 1]
+        concentration_sz_layer_above = self.cji[sz_layer - 1]
+
         if m_usz < (n - 1):
             if peclet <= 2:
                 if sz_layer == 0:
-                    dc = self.cjplus1 - 2 * self.cji[sz_layer] + self. cli[m_usz - 1]
-                    dc_dz = (self.cjplus1 - self.cli[m_usz - 1]) / (2 * dz)
+                    dc = self.cjplus1 - 2 * concentration_sz + concentration_last_layer_usz
+                    dc_dz = (self.cjplus1 - concentration_last_layer_usz) / (2 * dz)
                 elif sz_layer == (m_sz - 1):
-                    dc = self.cji[sz_layer] - 2 * self.cji[sz_layer] + self.cji[sz_layer - 1]
-                    dc_dz = (self.cji[sz_layer] - self.cji[sz_layer - 1]) / dz
+                    dc = concentration_sz - 2 * concentration_sz + concentration_sz_layer_above
+                    dc_dz = (concentration_sz - concentration_sz_layer_above) / dz
                 else:
-                    dc = self.cjplus1 - 2 * self.cji[sz_layer] + self.cji[sz_layer - 1]
-                    dc_dz = (self.cjplus1 - self.cji[sz_layer - 1]) / (2 * dz)
+                    dc = self.cjplus1 - 2 * concentration_sz + concentration_sz_layer_above
+                    dc_dz = (self.cjplus1 - concentration_sz_layer_above) / (2 * dz)
             else:
                 if sz_layer == 0:
-                    dc = self.cjplus1 - 2 * self.cji[sz_layer] + self.cli[m_usz - 1]
-                    dc_dz = (self.cji[sz_layer] - self.cli[m_usz - 1]) / dz
+                    dc = self.cjplus1 - 2 * concentration_sz + concentration_last_layer_usz
+                    dc_dz = (concentration_sz - concentration_last_layer_usz) / dz
                 elif sz_layer == (m_sz - 1):
-                    dc = self.cji[sz_layer] - 2 * self.cji[sz_layer] + self.cji[sz_layer - 1]
-                    dc_dz = (self.cji[sz_layer] - self.cji[sz_layer - 1]) / dz
+                    dc = concentration_sz - 2 * concentration_sz + concentration_sz_layer_above
+                    dc_dz = (concentration_sz - concentration_sz_layer_above) / dz
                 else:
-                    dc = self.cjplus1 - 2 * self.cji[sz_layer] + self.cji[sz_layer - 1]
-                    dc_dz = (self.cji[sz_layer] - self.cji[sz_layer - 1]) / dz
+                    dc = self.cjplus1 - 2 * concentration_sz + concentration_sz_layer_above
+                    dc_dz = (concentration_sz - concentration_sz_layer_above) / dz
                     
         if m_usz == (n - 1):
-            dc = self.cji[sz_layer] - 2 * self.cji[sz_layer] + self.cji[sz_layer - 1]
-            dc_dz = (self.cji[sz_layer] - self.cji[sz_layer - 1]) / (2 * dz)
+            dc = concentration_sz - 2 * concentration_sz + concentration_sz_layer_above
+            dc_dz = (concentration_sz - concentration_sz_layer_above) / (2 * dz)
         
         if m_usz == 0:
             if peclet <= 2:
                 if sz_layer == 0:
-                    dc = self.cjplus1 - 2 * self.cji[sz_layer] + self.cpi
+                    dc = self.cjplus1 - 2 * concentration_sz + self.cpi
                     dc_dz = (self.cjplus1 - self.cpi) / (2 * dz)
                 elif sz_layer == (m_sz - 1):
-                    dc = self.cji[sz_layer] - 2 * self.cji[sz_layer] + self.cji[sz_layer - 1]
-                    dc_dz = (self.cji[sz_layer] - self.cji[sz_layer - 1]) / dz
+                    dc = concentration_sz - 2 * concentration_sz + concentration_sz_layer_above
+                    dc_dz = (concentration_sz - concentration_sz_layer_above) / dz
                 else:
-                    dc = self.cjplus1 - 2 * self.cji[sz_layer] + self.cji[sz_layer - 1]
-                    dc_dz = (self.cjplus1 - self.cji[sz_layer - 1]) / (2 * dz)
+                    dc = self.cjplus1 - 2 * concentration_sz + concentration_sz_layer_above
+                    dc_dz = (self.cjplus1 - concentration_sz_layer_above) / (2 * dz)
             else: 
                 if sz_layer == 0:  # first cell
-                    dc = self.cjplus1 - 2 * self.cji[sz_layer] + self.cpi
-                    dc_dz = (self.cji[sz_layer] - self.cpi) / dz
+                    dc = self.cjplus1 - 2 * concentration_sz + self.cpi
+                    dc_dz = (concentration_sz - self.cpi) / dz
 
-                elif sz_layer == (SZ.m_sz - 1):  # last cell
-                    dc = self.cji[sz_layer] - 2 * self.cji[sz_layer] + self.cji[sz_layer - 1]
-                    dc_dz = (self.cji[sz_layer] - self.cji[sz_layer - 1]) / dz
+                elif sz_layer == (m_sz - 1):  # last cell
+                    dc = concentration_sz - 2 * concentration_sz + concentration_sz_layer_above
+                    dc_dz = (concentration_sz - concentration_sz_layer_above) / dz
 
                 else:
-                    dc = self.cjplus1 - 2 * self.cji[sz_layer] + self.cji[sz_layer - 1]
-                    dc_dz = (self.cji[sz_layer] - self.cji[sz_layer - 1]) / dz
-        delta_concentration = self.f_transport(teta_sz, teta_b_iplus1, self.cji[sz_layer], self.cs, dc, dc_dz,
-                                               self.kads, self.kdes, self.D, uf, self.Rxi_sz, dt, ro, f, dz)
+                    dc = self.cjplus1 - 2 * concentration_sz + concentration_sz_layer_above
+                    dc_dz = (concentration_sz - concentration_sz_layer_above) / dz
+        delta_concentration = self.f_transport(teta_sz, teta_b_iplus1, concentration_sz, self.csi_sz[sz_layer], dc, dc_dz,
+                                               self.kads2, self.kdes2, self.D, uf, self.Rxi_sz, dt, ro, f, dz)
         if teta_b_iplus1 > 0:
-            concentration = self.cji[sz_layer] + delta_concentration
+            concentration = concentration_sz + delta_concentration
         else:
             concentration = 0
 
@@ -627,7 +614,7 @@ class Pollutant:
     def f_delta_mass_balance_usz(self, time, Ab, teta_usz, husz, m_usz):
         delta_mass_balance_usz = (self.mass_balance[-1] - self.mass_storm_asterisk_accumulated[-1]) / (Ab * teta_usz[time] * husz[time] * 1000 / m_usz)
         concentration = self.cl_i1[1] + delta_mass_balance_usz
-        if concentration < 0:
+        if concentration <= 0:
             concentration = 0
         return concentration
 
@@ -684,18 +671,26 @@ class Ammonia(Pollutant):
     def f_reaction_sz(self):
         return 0
 
+    def f_plant_uptake_usz(self, concentration_usz, root_fraction, teta_sm):
+        plant_uptake = - root_fraction * (self.Fm_nh4 * teta_sm * concentration_usz / (self.Km_nh4 + teta_sm * concentration_usz))
+        return plant_uptake
+
+    def f_plant_uptake_sz(self, concentration_sz, root_fraction, teta_b):
+        plant_uptake = - root_fraction * (self.Fm_nh4 * teta_b * concentration_sz / (self.Km_nh4 + teta_b * concentration_sz))
+        return plant_uptake
+
 class Nitrate(Pollutant):
     def __init__(self, m_usz, m_sz, setup_file):
         super(Nitrate, self).__init__(m_usz, m_sz)
         setup = configparser.ConfigParser()
         setup.read(setup_file)
-        self.cs_usz = []
-        self.cs_sz = []
         self.D = float(setup['NO3']['D_no3'])
         self.Fm_no3 = float(setup['NO3']['Fm_no3'])
         self.Km_no3 = float(setup['NO3']['Km_no3'])
         self.kads = 0
         self.kdes = 0
+        self.kads2 = 0
+        self.kdes2 = 0
 
     def f_reaction_pz(self):
         return 0
@@ -704,12 +699,7 @@ class Nitrate(Pollutant):
         reaction = k_nit * C_nh4_iminus1
         return reaction
 
-    def f_reaction_sz(self, C_no3_iminus1, C_o2_i, C_doc_iminus1, k_denit):
-        #     Of = K_o2/(K_o2+C_o2_i)
-        #     bDOCf = (C_doc_iminus1 + bDOCd*dt)/(C_doc_iminus1 + bDOCd*dt + KbDOC)
-        #
-        #     k2 = k_denit*Of*bDOCf
-        ###testando sem influencia de DOC e O2
+    def f_reaction_sz(self, C_no3_iminus1, k_denit):
         reaction = -k_denit * C_no3_iminus1
         return reaction
 
@@ -722,19 +712,27 @@ class Nitrate(Pollutant):
     def f_mass_soil(self):
         return 0
 
+    def f_plant_uptake_usz(self, concentration_usz, root_fraction, teta_sm):
+        plant_uptake = -root_fraction * (self.Fm_no3 * teta_sm * concentration_usz / (self.Km_no3 + teta_sm * concentration_usz))
+        return plant_uptake
+
+    def f_plant_uptake_sz(self, concentration_sz, root_fraction, teta_b):
+        plant_uptake = -root_fraction * (self.Fm_no3 * teta_b * concentration_sz / (self.Km_no3 + teta_b * concentration_sz))
+        return plant_uptake
+
 
 class Oxygen(Pollutant):
     def __init__(self, m_usz, m_sz, setup_file):
         super(Oxygen, self).__init__(m_usz, m_sz)
         setup = configparser.ConfigParser()
         setup.read(setup_file)
-        self.cs_usz = []
-        self.cs_sz = []
         self.D = float(setup['O2']['D_o2'])
         self.K_o2 = float(setup['O2']['k_inib_o2'])  # perguntar pq K no lugar de k_inib_02
         self.k_o2 = float(setup['O2']['k_o2'])
         self.kads = 0
         self.kdes = 0
+        self.kads2 = 0
+        self.kdes2 = 0
 
         
     def f_reaction_pz(self):
@@ -756,6 +754,14 @@ class Oxygen(Pollutant):
 
     def f_mass_soil(self):
         return 0
+
+    def f_plant_uptake_usz(self, concentration_o2_usz, concentration_o2_root, root_fraction, lamda, teta_sm):
+        plant_uptake = - root_fraction * (lamda * (teta_sm * concentration_o2_root - teta_sm * concentration_o2_usz))
+        return plant_uptake
+
+    def f_plant_uptake_sz(self, concentration_o2_sz, concentration_o2_root, root_fraction, lamda, teta_b):
+        plant_uptake = -root_fraction * (lamda * (teta_b * concentration_o2_root - teta_b * concentration_o2_sz))
+        return plant_uptake
 
 
 class DissolvedOrganicCarbon(Pollutant):
