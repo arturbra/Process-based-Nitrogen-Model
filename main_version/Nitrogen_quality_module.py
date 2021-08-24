@@ -2029,11 +2029,6 @@ def run_Kin():
     data_doc['c_in'] = c_in
     
     data_doc['t'] = indice_n
-
-    print("cli_o2_list: ", cli_o2_list)
-    print("cli_nh4_list: ", cli_nh4_list)
-    print("cli_no3_list: ", cli_no3_list)
-
     return data_o2, data_nh4, data_no3, data_doc
     
 if __name__ == '__main__':
@@ -2041,10 +2036,10 @@ if __name__ == '__main__':
     
     data_o2, data_nh4, data_no3, data_doc = run_Kin()
 
-    # data_nh4.to_csv('results_Kin_pf_nh4_2.csv', index = False)
-    # data_o2.to_csv('results_Kin_pf_o2.csv', index = False)
-    # data_no3.to_csv('results_Kin_pf_no3.csv', index = False)
-    # data_doc.to_csv('results_Kin_pf_doc.csv', index = False)
+    data_nh4.to_csv('results/results_40/results_Kin_pf_nh4_2.csv', index = False)
+    data_o2.to_csv('results/results_40/results_Kin_pf_o2.csv', index = False)
+    data_no3.to_csv('results/results_40/results_Kin_pf_no3.csv', index = False)
+    data_doc.to_csv('results/results_40/results_Kin_pf_doc.csv', index = False)
     
     fim = datetime.datetime.now()
     print ('Elapsed time: ', fim - inicio)
