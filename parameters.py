@@ -3,13 +3,6 @@ from math import pi
 import pandas as pd
 
 
-class ConcentrationInflow:
-    def __init__(self, file):
-        csv_file = pd.read_csv(file, sep=';')
-        self.cin_nh4 = csv_file['nh4'].tolist()
-        self.cin_no3 = csv_file['no3'].tolist()
-        self.cin_o2 = csv_file['o2'].tolist()
-        self.cin_doc = csv_file['doc'].tolist()
 
 
 class WaterInflow:
@@ -119,14 +112,14 @@ class PondingZone:
         self.flagp = float(setup['PONDING_ZONE']['flagp'])
         self.k_denit = float(setup['DENITRIFICATION']['k_denit_pz'])
 
-    def f_concentration(self, cin, Qin_p, cp_a, I1, Qv, Rxi, hp, hp_a, Ab, dt):
-        # delta_cp = ((cin*Qin_p - cp_a*(I1 + Qv))*GENERAL_PARAMETERS.dt)/(hp*PZ.Ab) + Rxi*GENERAL_PARAMETERS.dt
+    def f_concentration(self, cin, Qin_p, cp_a, Qpf, Qv, Rxi, height_pz, height_pz_before, Ab, dt):
+        # delta_cp = ((cin*Qin_p - cp_a*(Qpf + Qv))*GENERAL_PARAMETERS.dt)/(height_pz*PZ.Ab) + Rxi*GENERAL_PARAMETERS.dt
         # cp = cp_a + delta_cp
 
-        # cp = Rxi*GENERAL_PARAMETERS.dt + (cin*Qin_p*GENERAL_PARAMETERS.dt)/(hp*PZ.Ab + GENERAL_PARAMETERS.dt*(I1 + Qv))
+        # cp = Rxi*GENERAL_PARAMETERS.dt + (cin*Qin_p*GENERAL_PARAMETERS.dt)/(height_pz*PZ.Ab + GENERAL_PARAMETERS.dt*(Qpf + Qv))
 
-        cp = (cp_a * hp_a * Ab + (cin * Qin_p - cp_a * (I1 + Qv) + Rxi * hp * Ab) * dt) / (
-                    hp * Ab)
+        cp = (cp_a * height_pz_before * Ab + (cin * Qin_p - cp_a * (Qpf + Qv) + Rxi * height_pz * Ab) * dt) / (
+                    height_pz * Ab)
 
         return cp
 
@@ -143,8 +136,8 @@ class PondingZone:
         Qet = evapotranspiration / (dt * 1000)
         return evapotranspiration
 
-    def f_weir_overflow(self, hp, dt, Qin, Qrain):
-        volume = hp * self.Ab + dt * (Qin + Qrain)
+    def f_weir_overflow(self, height_pz, dt, Qin, Qrain):
+        volume = height_pz * self.Ab + dt * (Qin + Qrain)
         if volume > self.Hover * self.Ab:
             height = volume / self.Ab
             weir_overflow = min((height - self.Hover) * self.Ab / dt, self.kWeir * (height - self.Hover) ** self.expWeir)
@@ -159,8 +152,8 @@ class PondingZone:
             infiltration = Kf * ((self.Ab - A) + self.Cs * self.Pp * hpEST)
         return infiltration
 
-    def f_infiltration_to_filter_material(self, Ks, hp, husz, A, dt, s, nusz, Qinfp):
-        infiltration = min(Ks * A * (hp + husz) / husz, hp * self.Ab / dt - Qinfp, (1.0 - s) * nusz * husz * A / dt)
+    def f_infiltration_to_filter_material(self, Ks, height_pz, husz, A, dt, s, nusz, Qinfp):
+        infiltration = min(Ks * A * (height_pz + husz) / husz, height_pz * self.Ab / dt - Qinfp, (1.0 - s) * nusz * husz * A / dt)
         return infiltration
 
 
@@ -192,9 +185,9 @@ class UnsaturatedZone:
             capillary_rise = 0
         return capillary_rise
 
-    def f_infiltration_to_sz(self, hp, husz, nusz, dt, sEST):
+    def f_infiltration_to_sz(self, height_pz, husz, nusz, dt, sEST):
         if sEST >= self.sfc:
-            Qfs = min((self.A * self.Ks * (hp + husz) / husz) * sEST ** self.gama, (sEST - self.sfc) * nusz * self.A * husz / dt)
+            Qfs = min((self.A * self.Ks * (height_pz + husz) / husz) * sEST ** self.gama, (sEST - self.sfc) * nusz * self.A * husz / dt)
         else:
             Qfs = 0
         return Qfs
@@ -211,12 +204,12 @@ class UnsaturatedZone:
         beta = l / (self.m_usz - 1)
         return alfa, beta
 
-    def f_unit_flux(self, alfa, beta, I1, Qet_1, I2, Qhc, Qorif, Qinf_sz, teta_sm_i, hpipe, Ab):
+    def f_unit_flux(self, alfa, beta, Qpf, Qet_1, Qfs, Qhc, Qorif, Qinf_sz, teta_sm_i, hpipe, Ab):
         if hpipe > 0:
-            UF_usz = (alfa * (I1 - Qet_1) + beta * (I2 - Qhc)) / (Ab * teta_sm_i)
+            UF_usz = (alfa * (Qpf - Qet_1) + beta * (Qfs - Qhc)) / (Ab * teta_sm_i)
 
         else:
-            UF_usz = (alfa * (I1 - Qet_1) + beta * (Qorif + Qinf_sz - Qhc)) / (Ab * teta_sm_i)
+            UF_usz = (alfa * (Qpf - Qet_1) + beta * (Qorif + Qinf_sz - Qhc)) / (Ab * teta_sm_i)
 
         return UF_usz
 
@@ -270,8 +263,8 @@ class SaturatedZone:
         beta2 = j / (self.m_sz - 1)
         return alfa2, beta2
 
-    def f_unit_flux(self, alfa2, beta2, I2, Qhc, Qet_2, Qorif, Qinf_sz, teta_b_i, Ab):
-        UF_sz = (alfa2 * (I2 - Qhc - Qet_2) + beta2 * (Qorif + Qinf_sz)) / (Ab * teta_b_i)
+    def f_unit_flux(self, alfa2, beta2, Qfs, Qhc, Qet_2, Qorif, Qinf_sz, teta_b_i, Ab):
+        UF_sz = (alfa2 * (Qfs - Qhc - Qet_2) + beta2 * (Qorif + Qinf_sz)) / (Ab * teta_b_i)
 
         return UF_sz
 
@@ -347,36 +340,27 @@ class SoilPlant:
 
 class Pollutant:
     def __init__(self, m_usz, m_sz):
-        self.cp_a = 0
-        self.cs_usz_a = 0
-        self.cs_sz_a = 0
-        self.cp = []
-        self.cpi = 0
-        self.c0_usz = [0] * m_usz
-        self.c0_sz = [0] * m_sz
-        self.cs0_usz = [self.cs_usz_a] * m_usz
-        self.cs0_sz = [self.cs_sz_a] * m_sz
-        self.c_usz = [self.c0_usz]
-        self.cs_usz = [self.c0_usz]
-        self.c_sz = [self.c0_sz]
-        self.cl_i1 = []
-        self.csi_usz = []
-        self.csi_sz = []
-        self.Rxl = []
-        self.cs_sz = [self.c0_sz]
-        self.Rx_pz = 0
-        self.Rx_usz = [self.c0_usz]
-        self.Rxi_usz = 0
-        self.Rx_sz = [self.c0_sz]
-        self.mass_storm_asterisk_accumulated = []  # O passo corretivo é feito com a massa, M indica a massa que vai ser usada no passo corretivo. Ast é asterisco.
-        self.mass_reaction_rate_accumulated = []
-        self.mass_inflow_accumulated = []
-        self.mass_overflow_accumulated = []
-        self.mass_pipe_outflow_accumulated = []
-        self.mass_infiltration_sz_accumulated = []
-        self.mass_evapotranspiration_accumulated = []
-        self.mass_pz_accumulated = []
-        self.mass_soil_accumulated = []
+        self.initial_concentration_usz = [0] * m_usz
+        self.initial_concentration_sz = [0] * m_sz
+        self.concentration_PZ = []
+        self.concentration_USZ = [self.initial_concentration_usz]
+        self.concentration_soil_USZ = [self.initial_concentration_usz]
+        self.concentration_SZ = [self.initial_concentration_sz]
+        self.concentration_soil_SZ = [self.initial_concentration_sz]
+        self.reaction_rate_USZ = [self.initial_concentration_usz]
+        self.reaction_rate_SZ = [self.initial_concentration_sz]
+        self.concentration_PZ_before = 0
+        self.concentration_soil_USZ_before = 0
+        self.concentration_soil_SZ_before = 0
+        self.mass_stormwater = []
+        self.mass_soil = []
+        self.mass_accumulated_reaction = []
+        self.mass_accumulated_inflow = []
+        self.mass_accumulated_overflow = []
+        self.mass_accumulated_pipe_outflow = []
+        self.mass_accumulated_infiltrated_to_SZ = []
+        self.mass_accumulated_evapotranspiration = []
+        self.mass_PZ = []
         self.mass_balance = []
 
     def f_transport(self, teta_i, teta_iplus1, ci, cs_i, dc, dc_dz, kads, kdes, D, UF, Rx, ro, f, dt, dz):
@@ -407,7 +391,7 @@ class Pollutant:
 
 
 class Ammonia(Pollutant):
-    def __init__(self, m_usz, m_sz, setup_file):
+    def __init__(self, m_usz, m_sz, setup_file, inflow_file):
         super(Ammonia, self).__init__(m_usz, m_sz)
         setup = configparser.ConfigParser()
         setup.read(setup_file)
@@ -419,7 +403,8 @@ class Ammonia(Pollutant):
         self.k_mb = float(setup['NH4']['k_nh4_mb'])
         self.Fm = float(setup['NH4']['Fm_nh4'])
         self.Km = float(setup['NH4']['Km_nh4'])
-
+        csv_file = pd.read_csv(inflow_file, sep=';')
+        self.concentration_inflow = csv_file['nh4'].tolist()
 
     def f_reaction_pz(self):
         return 0
@@ -440,7 +425,7 @@ class Ammonia(Pollutant):
         return PU_nh4_3
 
 class Nitrate(Pollutant):
-    def __init__(self, m_usz, m_sz, setup_file):
+    def __init__(self, m_usz, m_sz, setup_file, inflow_file):
         super(Nitrate, self).__init__(m_usz, m_sz)
         setup = configparser.ConfigParser()
         setup.read(setup_file)
@@ -451,6 +436,8 @@ class Nitrate(Pollutant):
         self.kdes = 0
         self.kads2 = 0
         self.kdes2 = 0
+        csv_file = pd.read_csv(inflow_file, sep=';')
+        self.concentration_inflow = csv_file['no3'].tolist()
 
     def f_reaction_pz(self):
         return 0
@@ -481,7 +468,7 @@ class Nitrate(Pollutant):
 
 
 class Oxygen(Pollutant):
-    def __init__(self, m_usz, m_sz, setup_file):
+    def __init__(self, m_usz, m_sz, setup_file, inflow_file):
         super(Oxygen, self).__init__(m_usz, m_sz)
         setup = configparser.ConfigParser()
         setup.read(setup_file)
@@ -492,7 +479,8 @@ class Oxygen(Pollutant):
         self.kdes = 0
         self.kads2 = 0
         self.kdes2 = 0
-
+        csv_file = pd.read_csv(inflow_file, sep=';')
+        self.concentration_inflow = csv_file['o2'].tolist()
         
     def f_reaction_pz(self):
         return 0
@@ -517,7 +505,7 @@ class Oxygen(Pollutant):
 
 
 class DissolvedOrganicCarbon(Pollutant):
-    def __init__(self, m_usz, m_sz, setup_file):
+    def __init__(self, m_usz, m_sz, setup_file, inflow_file):
         super(DissolvedOrganicCarbon, self).__init__(m_usz, m_sz)
         setup = configparser.ConfigParser()
         setup.read(setup_file)
@@ -531,6 +519,8 @@ class DissolvedOrganicCarbon(Pollutant):
         self.kads2 = float(setup['DOC']['kads2_doc'])
         self.kdes2 = float(setup['DOC']['kdes2_doc'])
         self.k_mb = float(setup['DOC']['k_doc_mb'])
+        csv_file = pd.read_csv(inflow_file, sep=';')
+        self.concentration_inflow = csv_file['doc'].tolist()
         
     def f_reaction_pz(self):
         return 0
