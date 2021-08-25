@@ -3,25 +3,9 @@
 import parameters
 import results_tests
 import datetime
-import pandas as pd 
+import pandas as pd
 
-
-SETUP_FILE = "parameters.ini"
-INFLOW_PARAMETERS = parameters.ConcentrationInflow("concentration_inflow.csv")
-WF_INFLOW = parameters.WaterInflow("water_inflow.csv")
-WFR = parameters.WaterFlowResults(WF_INFLOW.tQrain, WF_INFLOW.tQin, WF_INFLOW.tEmax)
-GENERAL_PARAMETERS = parameters.GeneralParameters(SETUP_FILE)
-USZ = parameters.UnsaturatedZone(SETUP_FILE, GENERAL_PARAMETERS.L, GENERAL_PARAMETERS.hpipe, GENERAL_PARAMETERS.dz)
-PZ = parameters.PondingZone(SETUP_FILE)
-SZ = parameters.SaturatedZone(SETUP_FILE, GENERAL_PARAMETERS.n, USZ.m_usz)
-SOIL_PLANT = parameters.SoilPlant(SETUP_FILE, USZ.nusz_ini)
-NH4 = parameters.Ammonia(USZ.m_usz, SZ.m_sz, SETUP_FILE)
-NO3 = parameters.Nitrate(USZ.m_usz, SZ.m_sz, SETUP_FILE)
-O2 = parameters.Oxygen(USZ.m_usz, SZ.m_sz, SETUP_FILE)
-DOC = parameters.DissolvedOrganicCarbon(USZ.m_usz, SZ.m_sz, SETUP_FILE)
-
-
-def run_W():
+def water_flow_module(WFR, GENERAL_PARAMETERS, USZ, PZ, SZ):
     hpEND = 0
     husz = USZ.husz_ini
 
@@ -105,7 +89,7 @@ def run_W():
         WFR.tteta_sz.append(nsz)
 
 # **4. Model routine**
-def run_Kin():
+def water_quality_module(WFR, GENERAL_PARAMETERS, INFLOW_PARAMETERS, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
     # O2
     cp_o2 = []
     c_usz_o2 = []
@@ -1808,12 +1792,53 @@ def run_Kin():
     data_doc['t'] = indice_n
     return data_o2, data_nh4, data_no3, data_doc
 
+def run(interaction):
+    SETUP_FILE = "parameters.ini"
+    INFLOW_PARAMETERS = parameters.ConcentrationInflow("concentration_inflow.csv")
+    WF_INFLOW = parameters.WaterInflow("water_inflow.csv")
+    WFR = parameters.WaterFlowResults(WF_INFLOW.tQrain, WF_INFLOW.tQin, WF_INFLOW.tEmax)
+    GENERAL_PARAMETERS = parameters.GeneralParameters(SETUP_FILE)
+    GENERAL_PARAMETERS.hpipe = hpipes[interaction]
+    USZ = parameters.UnsaturatedZone(SETUP_FILE, GENERAL_PARAMETERS.L, GENERAL_PARAMETERS.hpipe,
+                                     GENERAL_PARAMETERS.dz)
+    PZ = parameters.PondingZone(SETUP_FILE)
+    SZ = parameters.SaturatedZone(SETUP_FILE, GENERAL_PARAMETERS.n, USZ.m_usz)
+    SOIL_PLANT = parameters.SoilPlant(SETUP_FILE, USZ.nusz_ini)
+    NH4 = parameters.Ammonia(USZ.m_usz, SZ.m_sz, SETUP_FILE)
+    NO3 = parameters.Nitrate(USZ.m_usz, SZ.m_sz, SETUP_FILE)
+    O2 = parameters.Oxygen(USZ.m_usz, SZ.m_sz, SETUP_FILE)
+    DOC = parameters.DissolvedOrganicCarbon(USZ.m_usz, SZ.m_sz, SETUP_FILE)
+    water_flow_module(WFR, GENERAL_PARAMETERS, USZ, PZ, SZ)
+    #WFR.water_balance(GENERAL_PARAMETERS.dt)
+    print("hpipe:", GENERAL_PARAMETERS.hpipe)
+    data_o2, data_nh4, data_no3, data_doc = water_quality_module(WFR, GENERAL_PARAMETERS, INFLOW_PARAMETERS, USZ, PZ,
+                                                                 SZ, SOIL_PLANT, NH4, NO3, O2, DOC)
+
+    wf_path = results_paths[interaction] + "water_flow_results.csv"
+    nh4_path = results_paths[interaction] + "results_Kin_pf_nh4_2.csv"
+    o2_path = results_paths[interaction] + "results_Kin_pf_o2.csv"
+    no3_path = results_paths[interaction] + "results_Kin_pf_no3.csv"
+    doc_path = results_paths[interaction] + "results_Kin_pf_doc.csv"
+
+    wf_test = results_tests.water_flow_comparison_test(wf_path, WFR)
+    nh4_test = results_tests.water_quality_comparison_test(nh4_path, data_nh4)
+    o2_test = results_tests.water_quality_comparison_test(o2_path, data_o2)
+    no3_test = results_tests.water_quality_comparison_test(no3_path, data_no3)
+    doc_test = results_tests.water_quality_comparison_test(doc_path, data_doc)
+
+    if len(wf_test) == 0 and len(nh4_test) == 0 and len(o2_test) == 0 and len(no3_test) == 0 and len(doc_test) == 0:
+        print("Passed at this test. The results seems to be the same as the original code.")
+    else:
+        print("Don't panic. You can always Rollback")
 
 if __name__ == '__main__':
+    hpipes = [0, 0.1, 0.2, 0.3, 0.4]
+    results_paths = ["results/results_00/", "results/results_10/", "results/results_20/", "results/results_30/",
+                     "results/results_40/"]
     inicio = datetime.datetime.now()
-    run_W()
-    WFR.water_balance(GENERAL_PARAMETERS.dt)
-    data_o2, data_nh4, data_no3, data_doc = run_Kin()
+
+    for test in range(len(hpipes)):
+        run(test)
 
     #data_nh4.to_csv('results_Kin_pf_nh4_2.csv', index = False)
     #data_o2.to_csv('results_Kin_pf_o2.csv', index = False)
@@ -1823,9 +1848,4 @@ if __name__ == '__main__':
     fim = datetime.datetime.now()
     print('Elapsed time: ', fim - inicio)
     print('Done!')
-    wf_test = results_tests.water_flow_comparison_test("results/results_00/water_flow_results.csv", WFR)
-    nh4_test = results_tests.water_quality_comparison_test("results/results_00/results_Kin_pf_nh4_2.csv", data_nh4)
-    o2_test = results_tests.water_quality_comparison_test("results/results_00/results_Kin_pf_o2.csv", data_o2)
-    no3_test = results_tests.water_quality_comparison_test("results/results_00/results_Kin_pf_no3.csv", data_no3)
-    doc_test = results_tests.water_quality_comparison_test("results/results_00/results_Kin_pf_doc.csv", data_doc)
-    print(len(wf_test), len(nh4_test), len(o2_test), len(no3_test))
+
