@@ -112,15 +112,17 @@ class PondingZone:
         self.flagp = float(setup['PONDING_ZONE']['flagp'])
         self.k_denit = float(setup['DENITRIFICATION']['k_denit_pz'])
 
-    def f_concentration(self, cin, Qin_p, cp_a, Qpf, Qv, Rxi, height_pz, height_pz_before, Ab, dt):
+    def f_concentration(self, cin, Qin_p, cp_a, Qpf, Qv, Rxi, height_pz, height_pz_before, dt, threshold = 0.00002):
         # delta_cp = ((cin*Qin_p - cp_a*(Qpf + Qv))*GENERAL_PARAMETERS.dt)/(height_pz*PZ.Ab) + Rxi*GENERAL_PARAMETERS.dt
         # cp = cp_a + delta_cp
 
         # cp = Rxi*GENERAL_PARAMETERS.dt + (cin*Qin_p*GENERAL_PARAMETERS.dt)/(height_pz*PZ.Ab + GENERAL_PARAMETERS.dt*(Qpf + Qv))
 
-        cp = (cp_a * height_pz_before * Ab + (cin * Qin_p - cp_a * (Qpf + Qv) + Rxi * height_pz * Ab) * dt) / (
-                    height_pz * Ab)
+        cp = (cp_a * height_pz_before * self.Ab + (cin * Qin_p - cp_a * (Qpf + Qv) + Rxi * height_pz * self.Ab) * dt) / (
+                    height_pz * self.Ab)
 
+        if cp < threshold:
+            cp = 0
         return cp
 
     def f_evapotranspiration(self, sw, sh, ss, Kc, Emax, A, sEST, dt):
@@ -204,12 +206,12 @@ class UnsaturatedZone:
         beta = l / (self.m_usz - 1)
         return alfa, beta
 
-    def f_unit_flux(self, alfa, beta, Qpf, Qet_1, Qfs, Qhc, Qorif, Qinf_sz, teta_sm_i, hpipe, Ab):
+    def f_unit_flux(self, alfa, beta, Qpf, Qet_1, Qfs, Qhc, Qorif, Qinf_sz, theta_usz_now, hpipe, Ab):
         if hpipe > 0:
-            UF_usz = (alfa * (Qpf - Qet_1) + beta * (Qfs - Qhc)) / (Ab * teta_sm_i)
+            UF_usz = (alfa * (Qpf - Qet_1) + beta * (Qfs - Qhc)) / (Ab * theta_usz_now)
 
         else:
-            UF_usz = (alfa * (Qpf - Qet_1) + beta * (Qorif + Qinf_sz - Qhc)) / (Ab * teta_sm_i)
+            UF_usz = (alfa * (Qpf - Qet_1) + beta * (Qorif + Qinf_sz - Qhc)) / (Ab * theta_usz_now)
 
         return UF_usz
 
@@ -263,8 +265,8 @@ class SaturatedZone:
         beta2 = j / (self.m_sz - 1)
         return alfa2, beta2
 
-    def f_unit_flux(self, alfa2, beta2, Qfs, Qhc, Qet_2, Qorif, Qinf_sz, teta_b_i, Ab):
-        UF_sz = (alfa2 * (Qfs - Qhc - Qet_2) + beta2 * (Qorif + Qinf_sz)) / (Ab * teta_b_i)
+    def f_unit_flux(self, alfa2, beta2, Qfs, Qhc, Qet_2, Qorif, Qinf_sz, theta_sz_now, Ab):
+        UF_sz = (alfa2 * (Qfs - Qhc - Qet_2) + beta2 * (Qorif + Qinf_sz)) / (Ab * theta_sz_now)
 
         return UF_sz
 
@@ -342,16 +344,16 @@ class Pollutant:
     def __init__(self, m_usz, m_sz):
         self.initial_concentration_usz = [0] * m_usz
         self.initial_concentration_sz = [0] * m_sz
-        self.concentration_PZ = []
-        self.concentration_USZ = [self.initial_concentration_usz]
-        self.concentration_soil_USZ = [self.initial_concentration_usz]
-        self.concentration_SZ = [self.initial_concentration_sz]
-        self.concentration_soil_SZ = [self.initial_concentration_sz]
-        self.reaction_rate_USZ = [self.initial_concentration_usz]
-        self.reaction_rate_SZ = [self.initial_concentration_sz]
-        self.concentration_PZ_before = 0
-        self.concentration_soil_USZ_before = 0
-        self.concentration_soil_SZ_before = 0
+        self.concentration_pz = []
+        self.concentration_usz = [self.initial_concentration_usz]
+        self.concentration_soil_usz = [self.initial_concentration_usz]
+        self.concentration_sz = [self.initial_concentration_sz]
+        self.concentration_soil_sz = [self.initial_concentration_sz]
+        self.reaction_rate_usz = [self.initial_concentration_usz]
+        self.reaction_rate_sz = [self.initial_concentration_sz]
+        self.concentration_pz_before = 0
+        self.concentration_soil_usz_before = 0
+        self.concentration_soil_sz_before = 0
         self.mass_stormwater = []
         self.mass_soil = []
         self.mass_accumulated_reaction = []
@@ -362,6 +364,7 @@ class Pollutant:
         self.mass_accumulated_evapotranspiration = []
         self.mass_PZ = []
         self.mass_balance = []
+
 
     def f_transport(self, teta_i, teta_iplus1, ci, cs_i, dc, dc_dz, kads, kdes, D, UF, Rx, ro, f, dt, dz):
         if teta_i == 0:
@@ -375,7 +378,7 @@ class Pollutant:
             # delta_c_i1 = ((1/teta_i)*GENERAL_PARAMETERS.dt*(-teta_i*kads*ci + ro*kdes*cs_i + teta_i*(D*SOIL_PLANT.f*(dc/GENERAL_PARAMETERS.dz**2) - UF*dc_dz) + Rx))
         return delta_c_i1
 
-    def f_concentration_soil(self, cs_a, teta, kads, ci, kdes, kmicro, ro, dt):
+    def f_concentration_soil(self, cs_a, teta, kads, ci, kdes, kmicro, ro, dt, threshold=0.00000000000001):
         # Rxs = kmicro*cs_a
         Rxs = 0
 
@@ -387,6 +390,8 @@ class Pollutant:
         else:
             cs = cs_abs
 
+        if cs < threshold:
+            cs = 0
         return cs
 
 
@@ -416,12 +421,12 @@ class Ammonia(Pollutant):
     def f_reaction_sz(self):
         return 0
 
-    def f_plant_uptake_usz(self, C_nh4_2, teta_sm, root_fraction):
-        PU_nh4_2 = -root_fraction * (self.Fm * teta_sm * C_nh4_2 / (self.Km + teta_sm * C_nh4_2))
+    def f_plant_uptake_usz(self, C_nh4_2, theta_usz, root_fraction):
+        PU_nh4_2 = -root_fraction * (self.Fm * theta_usz * C_nh4_2 / (self.Km + theta_usz * C_nh4_2))
         return PU_nh4_2
 
-    def f_plant_uptake_sz(self, C_nh4_3, teta_b, root_fraction):
-        PU_nh4_3 = -root_fraction * (self.Fm * teta_b * C_nh4_3 / (self.Km + teta_b * C_nh4_3))
+    def f_plant_uptake_sz(self, C_nh4_3, theta_sz, root_fraction):
+        PU_nh4_3 = -root_fraction * (self.Fm * theta_sz * C_nh4_3 / (self.Km + theta_sz * C_nh4_3))
         return PU_nh4_3
 
 class Nitrate(Pollutant):
@@ -456,15 +461,18 @@ class Nitrate(Pollutant):
         return R_denit
 
 
-    def f_plant_uptake_usz(self, C_no3_2, teta_sm, root_fraction):
-        PU_no3_2 = -root_fraction * (self.Fm * teta_sm * C_no3_2 / (self.Km + teta_sm * C_no3_2))
+    def f_plant_uptake_usz(self, C_no3_2, theta_usz, root_fraction):
+        PU_no3_2 = -root_fraction * (self.Fm * theta_usz * C_no3_2 / (self.Km + theta_usz * C_no3_2))
 
         return PU_no3_2
 
-    def f_plant_uptake_sz(self, C_no3_3, teta_b, root_fraction):
-        PU_no3_3 = -root_fraction * (self.Fm * teta_b * C_no3_3 / (self.Km + teta_b * C_no3_3))
+    def f_plant_uptake_sz(self, C_no3_3, theta_sz, root_fraction):
+        PU_no3_3 = -root_fraction * (self.Fm * theta_sz * C_no3_3 / (self.Km + theta_sz * C_no3_3))
 
         return PU_no3_3
+
+    def f_concentration_soil(self):
+        return 0
 
 
 class Oxygen(Pollutant):
@@ -494,14 +502,16 @@ class Oxygen(Pollutant):
 
         return R_o2
 
-
-    def f_plant_uptake_usz(self, C_o2_2, C_o2_root, teta_sm, root_fraction, lamda):
-        PU_o2_2 = -root_fraction * (lamda * (teta_sm * C_o2_root - teta_sm * C_o2_2))
+    def f_plant_uptake_usz(self, C_o2_2, C_o2_root, theta_usz, root_fraction, lamda):
+        PU_o2_2 = -root_fraction * (lamda * (theta_usz * C_o2_root - theta_usz * C_o2_2))
         return PU_o2_2
 
-    def f_plant_uptake_sz(self, C_o2_3, C_o2_root, teta_b, root_fraction, lamda):
-        PU_o2_3 = -root_fraction * (lamda * (teta_b * C_o2_root - teta_b * C_o2_3))
+    def f_plant_uptake_sz(self, C_o2_3, C_o2_root, theta_sz, root_fraction, lamda):
+        PU_o2_3 = -root_fraction * (lamda * (theta_sz * C_o2_root - theta_sz * C_o2_3))
         return PU_o2_3
+
+    def f_concentration_soil(self):
+        return 0
 
 
 class DissolvedOrganicCarbon(Pollutant):
