@@ -174,6 +174,7 @@ class UnsaturatedZone:
         self.gama = float(setup['UNSATURATED_ZONE']['gama'])
         self.Kf = float(setup['UNSATURATED_ZONE']['Kf'])
         self.m_usz = round((L - hpipe) / dz)
+        self.unit_flux = []
 
     def f_capillary_rise(self, Emax, sEST, Kc):
         s2 = sEST
@@ -206,7 +207,10 @@ class UnsaturatedZone:
         beta = l / (self.m_usz - 1)
         return alfa, beta
 
-    def f_unit_flux(self, alfa, beta, Qpf, Qet_1, Qfs, Qhc, Qorif, Qinf_sz, theta_usz_now, hpipe, Ab):
+    def f_unit_flux(self, usz_layer, Qpf, Qet_1, Qfs, Qhc, Qorif, Qinf_sz, theta_usz_now, hpipe, Ab):
+        alfa = (self.m_usz - 1 - usz_layer) / (self.m_usz - 1)
+        beta = usz_layer / (self.m_usz - 1)
+
         if hpipe > 0:
             UF_usz = (alfa * (Qpf - Qet_1) + beta * (Qfs - Qhc)) / (Ab * theta_usz_now)
 
@@ -215,13 +219,13 @@ class UnsaturatedZone:
 
         return UF_usz
 
-    def f_peclet(self, UF_usz, D, dz):
+    def f_peclet(self, unit_flux_usz, D, dz):
         if D > 0:
-            Peusz = UF_usz * dz / D
+            peclet = unit_flux_usz * dz / D
         else:
-            Peusz = 100
+            peclet = 100
 
-        return Peusz
+        return peclet
 
 
 class SaturatedZone:
@@ -394,6 +398,66 @@ class Pollutant:
             cs = 0
         return cs
 
+    def f_delta_concentration_layer_usz(self, usz_layer, dz, m_usz):
+        if self.peclet <= 2:
+            if usz_layer == 0:  # first cell
+                dc = self.concentration_usz_next_layer - 2 * self.concentration_usz_layers[
+                    usz_layer] + self.concentration_pz_now
+                dc_dz = (self.concentration_usz_next_layer - self.concentration_pz_now) / (2 * dz)
+
+            elif usz_layer == (m_usz - 1):  # last cell
+                dc = self.concentration_usz_layers[usz_layer] - 2 * self.concentration_usz_layers[usz_layer] + \
+                     self.concentration_usz_layers[usz_layer - 1]
+                dc_dz = (self.concentration_usz_layers[usz_layer] - self.concentration_usz_layers[
+                    usz_layer - 1]) / dz
+
+            else:
+                dc = self.concentration_usz_next_layer - 2 * self.concentration_usz_layers[usz_layer] + \
+                     self.concentration_usz_layers[usz_layer - 1]
+                dc_dz = (self.concentration_usz_next_layer - self.concentration_usz_layers[usz_layer - 1]) / (
+                        2 * dz)
+
+        else:  # Peusz > 2
+            if usz_layer == 0:  # first cell
+                dc = self.concentration_usz_next_layer - 2 * self.concentration_usz_layers[
+                    usz_layer] + self.concentration_pz_now
+                dc_dz = (self.concentration_usz_layers[usz_layer] - self.concentration_pz_now) / dz
+
+            elif usz_layer == (m_usz - 1):  # last cell
+                dc = self.concentration_usz_layers[usz_layer] - 2 * self.concentration_usz_layers[usz_layer] + \
+                     self.concentration_usz_layers[usz_layer - 1]
+                dc_dz = (self.concentration_usz_layers[usz_layer] - self.concentration_usz_layers[
+                    usz_layer - 1]) / dz
+
+            else:
+                dc = self.concentration_usz_next_layer - 2 * self.concentration_usz_layers[usz_layer] + \
+                     self.concentration_usz_layers[usz_layer - 1]
+                dc_dz = (self.concentration_usz_layers[usz_layer] - self.concentration_usz_layers[
+                    usz_layer - 1]) / dz
+
+        return dc, dc_dz
+    
+    def f_delta_concentration_usz(self, time, usz_layer, m_usz, tteta_usz, theta_usz_after, unit_flux_now, ro, f, dt, dz, threshold=0.0000000000000001):
+        dc, dc_dz = self.f_delta_concentration_layer_usz(usz_layer, dz, m_usz)
+
+
+        delta_concentration = self.f_transport(tteta_usz[time], theta_usz_after, self.concentration_usz_layers[usz_layer],
+                                      self.concentration_soil_usz_layer, dc, dc_dz, self.kads, self.kdes,
+                                      self.D, unit_flux_now, self.reaction_rate_usz_now, ro, f,
+                                      dt, dz)
+
+        if theta_usz_after > 0:
+            concentration_now = self.concentration_usz_layers[usz_layer] + delta_concentration
+        else:
+            concentration_now = 0
+
+        if concentration_now <= threshold:
+            concentration_now = 0
+
+        return concentration_now
+
+
+
 
 class Ammonia(Pollutant):
     def __init__(self, m_usz, m_sz, setup_file, inflow_file):
@@ -428,6 +492,7 @@ class Ammonia(Pollutant):
     def f_plant_uptake_sz(self, C_nh4_3, theta_sz, root_fraction):
         PU_nh4_3 = -root_fraction * (self.Fm * theta_sz * C_nh4_3 / (self.Km + theta_sz * C_nh4_3))
         return PU_nh4_3
+
 
 class Nitrate(Pollutant):
     def __init__(self, m_usz, m_sz, setup_file, inflow_file):
