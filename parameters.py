@@ -235,6 +235,7 @@ class SaturatedZone:
         self.Psz = float(setup['SATURATED_ZONE']['Psz'])
         self.flagsz = float(setup['SATURATED_ZONE']['flagsz'])
         self.m_sz = n - m_usz
+        self.unit_flux = []
 
     def f_infiltration_to_surround(self, Kf, A, Cs, hszEST):
         if self.flagsz == 1:  # lined
@@ -269,9 +270,11 @@ class SaturatedZone:
         beta2 = j / (self.m_sz - 1)
         return alfa2, beta2
 
-    def f_unit_flux(self, alfa2, beta2, Qfs, Qhc, Qet_2, Qorif, Qinf_sz, theta_sz_now, Ab):
-        UF_sz = (alfa2 * (Qfs - Qhc - Qet_2) + beta2 * (Qorif + Qinf_sz)) / (Ab * theta_sz_now)
+    def f_unit_flux(self, sz_layer, Qfs, Qhc, Qet_2, Qorif, Qinf_sz, theta_sz_now, Ab):
+        alfa = (self.m_sz - 1 - sz_layer) / (self.m_sz - 1)
+        beta = sz_layer / (self.m_sz - 1)
 
+        UF_sz = (alfa * (Qfs - Qhc - Qet_2) + beta * (Qorif + Qinf_sz)) / (Ab * theta_sz_now)
         return UF_sz
 
     def f_peclet(self, UF_sz, D, dz):
@@ -437,6 +440,92 @@ class Pollutant:
 
         return dc, dc_dz
     
+    def f_delta_concentration_layer_sz(self, sz_layer, dz, m_usz, m_sz, n):
+        if m_usz < (n - 1):
+            if self.peclet <= 2:
+                if sz_layer == 0:  # first cell
+                    dc = self.concentration_sz_next_layer - 2 * self.concentration_sz_layers[sz_layer] + \
+                             self.concentration_usz_layers[m_usz - 1]
+                    dc_dz = (self.concentration_sz_next_layer - self.concentration_usz_layers[m_usz - 1]) / (
+                                2 * dz)
+
+                elif sz_layer == (m_sz - 1):  # last cell
+                    dc = self.concentration_sz_layers[sz_layer] - 2 * self.concentration_sz_layers[sz_layer] + \
+                             self.concentration_sz_layers[sz_layer - 1]
+                    dc_dz = (self.concentration_sz_layers[sz_layer] - self.concentration_sz_layers[
+                        sz_layer - 1]) / dz
+
+                else:
+                    dc = self.concentration_sz_next_layer - 2 * self.concentration_sz_layers[sz_layer] + \
+                             self.concentration_sz_layers[sz_layer - 1]
+                    dc_dz = (self.concentration_sz_next_layer - self.concentration_sz_layers[sz_layer - 1]) / (
+                                2 * dz)
+
+            else:
+                if sz_layer == 0:
+                    dc = self.concentration_sz_next_layer - 2 * self.concentration_sz_layers[sz_layer] + \
+                             self.concentration_usz_layers[m_usz - 1]
+                    dc_dz = (self.concentration_sz_layers[sz_layer] - self.concentration_usz_layers[
+                        m_usz - 1]) / dz
+
+                elif sz_layer == (m_sz - 1):  # last cell
+                    dc = self.concentration_sz_layers[sz_layer] - 2 * self.concentration_sz_layers[sz_layer] + \
+                             self.concentration_sz_layers[sz_layer - 1]
+                    dc_dz = (self.concentration_sz_layers[sz_layer] - self.concentration_sz_layers[
+                        sz_layer - 1]) / dz
+
+                else:
+                    dc = self.concentration_sz_next_layer - 2 * self.concentration_sz_layers[sz_layer] + \
+                             self.concentration_sz_layers[sz_layer - 1]
+                    dc_dz = (self.concentration_sz_layers[sz_layer] - self.concentration_sz_layers[
+                        sz_layer - 1]) / dz
+
+        if m_usz == (n - 1):
+            dc = self.concentration_sz_layers[sz_layer] - 2 * self.concentration_sz_layers[sz_layer] + \
+                     self.concentration_sz_layers[sz_layer - 1]
+            dc_dz = (self.concentration_sz_layers[sz_layer] - self.concentration_sz_layers[sz_layer - 1]) / (
+                        2 * dz)
+
+        if m_usz == 0:
+            if self.peclet <= 2:
+                if sz_layer == 0:  # first cell
+                    dc = self.concentration_sz_next_layer - 2 * self.concentration_sz_layers[
+                        sz_layer] + self.concentration_pz_now
+                    dc_dz = (self.concentration_sz_next_layer - self.concentration_pz_now) / (
+                                2 * dz)
+
+                elif sz_layer == (m_sz - 1):  # last cell
+                    dc = self.concentration_sz_layers[sz_layer] - 2 * self.concentration_sz_layers[sz_layer] + \
+                             self.concentration_sz_layers[sz_layer - 1]
+                    dc_dz = (self.concentration_sz_layers[sz_layer] - self.concentration_sz_layers[
+                        sz_layer - 1]) / dz
+
+                else:
+                    dc = self.concentration_sz_next_layer - 2 * self.concentration_sz_layers[sz_layer] + \
+                             self.concentration_sz_layers[sz_layer - 1]
+                    dc_dz = (self.concentration_sz_next_layer - self.concentration_sz_layers[sz_layer - 1]) / (
+                                2 * dz)
+
+            else:
+                if sz_layer == 0:  # first cell
+                    dc = self.concentration_sz_next_layer - 2 * self.concentration_sz_layers[
+                        sz_layer] + self.concentration_pz_now
+                    dc_dz = (self.concentration_sz_layers[
+                                     sz_layer] - self.concentration_pz_now) / dz
+
+                elif sz_layer == (m_sz - 1):  # last cell
+                    dc = self.concentration_sz_layers[sz_layer] - 2 * self.concentration_sz_layers[sz_layer] + \
+                             self.concentration_sz_layers[sz_layer - 1]
+                    dc_dz = (self.concentration_sz_layers[sz_layer] - self.concentration_sz_layers[
+                        sz_layer - 1]) / dz
+
+                else:
+                    dc = self.concentration_sz_next_layer - 2 * self.concentration_sz_layers[sz_layer] + \
+                             self.concentration_sz_layers[sz_layer - 1]
+                    dc_dz = (self.concentration_sz_layers[sz_layer] - self.concentration_sz_layers[
+                        sz_layer - 1]) / dz
+        return dc, dc_dz        
+
     def f_delta_concentration_usz(self, time, usz_layer, m_usz, tteta_usz, theta_usz_after, unit_flux_now, ro, f, dt, dz, threshold=0.0000000000000001):
         dc, dc_dz = self.f_delta_concentration_layer_usz(usz_layer, dz, m_usz)
 
@@ -453,10 +542,22 @@ class Pollutant:
 
         if concentration_now <= threshold:
             concentration_now = 0
-
         return concentration_now
+    
+    def f_delta_concentration_sz(self, time, sz_layer, m_usz, m_sz, tteta_sz, theta_sz_after, unit_flux_now, ro, f, dt, dz, n, threshold=0.0000000000000001):
+        dc, dc_dz = self.f_delta_concentration_layer_sz(sz_layer, dz, m_usz, m_sz, n)
+        delta_c_doc = self.f_transport(tteta_sz[time], theta_sz_after, self.concentration_sz_layers[sz_layer],
+                                      self.concentration_soil_sz_layer, dc, dc_dz, self.kads2, self.kdes2,
+                                      self.D, unit_flux_now, self.reaction_rate_sz_now, ro, f,
+                                      dt, dz)
+        if theta_sz_after > 0:
+            concentration = self.concentration_sz_layers[sz_layer] + delta_c_doc
+        else:
+            concentration = 0
 
-
+        if concentration <= threshold:
+            concentration = 0
+        return concentration
 
 
 class Ammonia(Pollutant):
@@ -524,7 +625,6 @@ class Nitrate(Pollutant):
         k2 = k_denit  ###testando sem influencia de DOC e O2
         R_denit = - k2 * C_no3_iminus1
         return R_denit
-
 
     def f_plant_uptake_usz(self, C_no3_2, theta_usz, root_fraction):
         PU_no3_2 = -root_fraction * (self.Fm * theta_usz * C_no3_2 / (self.Km + theta_usz * C_no3_2))
