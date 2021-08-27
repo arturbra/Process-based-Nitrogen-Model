@@ -33,7 +33,8 @@ tQin = Qin_file['Qin'].tolist()
 
 ###  2. Definition of parameters
 
-setup_file = ".\\main_version\\Water_flow_module.ini"
+#setup_file = ".\\main_version\\Water_flow_module.ini"
+setup_file = ".\\main_version\\water_flow_parameters_modified.ini"
 setup = configparser.ConfigParser()
 setup.read(setup_file)
 
@@ -364,10 +365,10 @@ if __name__ == '__main__':
         'Qpf': tQpf[:len(tt)],
         'Qover': tQover[:len(tt)],
         'Qfs': tQfs[:len(tt)],
-        'Qet_1': tQet1[:len(tt)],
+        'Qet1': tQet1[:len(tt)],
         'Qhc': tQhc[:len(tt)],
         'Qpipe': tQpipe[:len(tt)],
-        'Qet_2': tQet2[:len(tt)],
+        'Qet2': tQet2[:len(tt)],
         'teta_usz': tteta_usz[:len(tt)],
         'teta_sz': tteta_sz[:len(tt)],
         'Qrain': tQrain[:len(tt)],      
@@ -389,7 +390,7 @@ if __name__ == '__main__':
 #     plt.show()
       
     
-    data.to_csv('results/results_40/water_flow_results.csv', index = False)
+    data.to_csv('results/changed_parameters/hpipe_40/water_flow_results.csv', index = False)
     
     ###  5. Water balance
     

@@ -20,7 +20,8 @@ rodada = 'teste_4'
 #logger = logging.getLogger(__name__)
 
 
-setup_file = ".\\main_version\\Nitrogen_quality_module.ini"
+#setup_file = ".\\main_version\\Nitrogen_quality_module.ini"
+setup_file = ".\\main_version\\quality_parameters_modified.ini"
 setup = configparser.ConfigParser()
 setup.read(setup_file)
 
@@ -2036,10 +2037,10 @@ if __name__ == '__main__':
     
     data_o2, data_nh4, data_no3, data_doc = run_Kin()
 
-    data_nh4.to_csv('results/results_40/results_Kin_pf_nh4_2.csv', index = False)
-    data_o2.to_csv('results/results_40/results_Kin_pf_o2.csv', index = False)
-    data_no3.to_csv('results/results_40/results_Kin_pf_no3.csv', index = False)
-    data_doc.to_csv('results/results_40/results_Kin_pf_doc.csv', index = False)
+    data_nh4.to_csv('results/changed_parameters/hpipe_40/results_Kin_pf_nh4_2.csv', index = False)
+    data_o2.to_csv('results/changed_parameters/hpipe_40/results_Kin_pf_o2.csv', index = False)
+    data_no3.to_csv('results/changed_parameters/hpipe_40/results_Kin_pf_no3.csv', index = False)
+    data_doc.to_csv('results/changed_parameters/hpipe_40/results_Kin_pf_doc.csv', index = False)
     
     fim = datetime.datetime.now()
     print ('Elapsed time: ', fim - inicio)

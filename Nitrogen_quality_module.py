@@ -286,7 +286,7 @@ def water_quality_module(WFR, GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
             NO3.concentration_sz_layers_now.append(NO3.delta_concentration)
 
             ### DOC
-            DOC.peclet = SZ.f_peclet(SZ.unit_flux_now, DOC.D,GP.dz)
+            DOC.peclet = SZ.f_peclet(SZ.unit_flux_now, DOC.D, GP.dz)
             DOC.delta_concentration = DOC.f_delta_concentration_sz(time, sz_layer, USZ.m_usz, SZ.m_sz, WFR.tteta_sz, theta_sz_after, SZ.unit_flux_now, SOIL_PLANT.ro, SOIL_PLANT.f, GP.dt, GP.dz, GP.n)
             DOC.concentration_sz_layers_now.append(DOC.delta_concentration)
 
@@ -348,7 +348,7 @@ def water_quality_module(WFR, GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
     return data_o2, data_nh4, data_no3, data_doc
 
 def run(interaction):
-    SETUP_FILE = "parameters.ini"
+    SETUP_FILE = "modified_parameters.ini"
     INFLOW_FILE = "concentration_inflow.csv"
     WF_INFLOW = parameters.WaterInflow("water_inflow.csv")
     WFR = parameters.WaterFlowResults(WF_INFLOW.tQrain, WF_INFLOW.tQin, WF_INFLOW.tEmax)
@@ -385,15 +385,18 @@ def run(interaction):
         print("Passed at this test. The results seems to be the same as the original code.")
     else:
         print("Don't panic. You can always Rollback")
+        print(len(wf_test), len(nh4_test), len(o2_test), len(no3_test), len(doc_test))
 
 if __name__ == '__main__':
     hpipes = [0, 0.1, 0.2, 0.3, 0.4]
-    results_paths = ["results/results_00/", "results/results_10/", "results/results_20/", "results/results_30/",
-                     "results/results_40/"]
+    results_paths = ["results/changed_parameters/hpipe_00/", "results/changed_parameters/hpipe_10/",
+                     "results/changed_parameters/hpipe_20/", "results/changed_parameters/hpipe_30/",
+                     "results/changed_parameters/hpipe_40/"]
     inicio = datetime.datetime.now()
 
     for test in range(len(hpipes)):
         run(test)
+
 
     #data_nh4.to_csv('results_Kin_pf_nh4_2.csv', index = False)
     #data_o2.to_csv('results_Kin_pf_o2.csv', index = False)
