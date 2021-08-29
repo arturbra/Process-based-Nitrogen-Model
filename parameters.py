@@ -111,7 +111,7 @@ class PondingZone:
         self.height = []
         self.height_after = [0]
         self.overflow = []
-        self.infiltration_to_surrounding = []
+        self.infiltration_to_surround = []
         self.infiltration_to_filter_material = []
         self.evapotranspiration_overall = []
         self.evapotranspiration = []
@@ -156,7 +156,7 @@ class PondingZone:
             weir_overflow = 0
         return weir_overflow
 
-    def f_infiltration_to_surrounding(self, Kf, A, hpEST):
+    def f_infiltration_to_surround(self, Kf, A, hpEST):
         if self.flagp == 1:
             infiltration = 0
         else:
@@ -172,7 +172,7 @@ class PondingZone:
         return height
     
     def f_height_after(self, time, general_parameters):
-        height_after = max(self.height[time] - general_parameters.dt / self.Ab * (self.infiltration_to_filter_material[time] + self.infiltration_to_surrounding[time]), 0)
+        height_after = max(self.height[time] - general_parameters.dt / self.Ab * (self.infiltration_to_filter_material[time] + self.infiltration_to_surround[time]), 0)
         return height_after
 
 
@@ -201,6 +201,7 @@ class UnsaturatedZone:
         self.infiltration_to_sz = []
         self.wilting_point_estimated_after = []
         self.evapotranspiration = []
+        self.theta = []
 
     def f_capillary_rise(self, Emax, sEST, Kc):
         s2 = sEST
@@ -290,6 +291,7 @@ class SaturatedZone:
         self.height_estimated = []
         self.infiltration_to_surround = []
         self.pipe_outflow = []
+        self.theta = []
         
     def f_infiltration_to_surround(self, Kf, A, Cs, hszEST):
         if self.flagsz == 1:  # lined

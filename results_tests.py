@@ -1,19 +1,40 @@
 import numpy as np
 import pandas as pd
 
-def water_flow_comparison_test(original_water_flow_results_file, WFR):
+def water_flow_comparison_test(original_water_flow_results_file, GP, PZ, USZ, SZ):
     water_flow_results = pd.read_csv(original_water_flow_results_file)
     water_flow_results = water_flow_results.round(decimals=4)
-    water_flow_att = [att for att in dir(WFR) if not (att.startswith("__") or att == "water_balance")]
-    a = [getattr(WFR, att) for att in water_flow_att]
-    b = pd.DataFrame(a)
-    b = b.transpose()
-    b = b.round(decimals=4)
-    b.columns = water_flow_att
+    df_dict = {"t": range(0, len(GP.rain_inflow)),
+               "Qin": GP.inflow,
+               "Qet": PZ.evapotranspiration_overall,
+               "hpEND": PZ.height_after[1:],
+               "Qpf": PZ.infiltration_to_filter_material,
+               "Qover": PZ.overflow,
+               "Qfs": USZ.infiltration_to_sz,
+               "Qet1": PZ.evapotranspiration,
+               "Qhc": USZ.capillary_rise,
+               "Qpipe": SZ.pipe_outflow,
+               "Qet2": USZ.evapotranspiration,
+               "teta_usz": USZ.theta,
+               "teta_sz": SZ.theta,
+               "Qrain": GP.rain_inflow,
+               "Qinfp": PZ.infiltration_to_surround,
+               "Qinfsz": SZ.infiltration_to_surround,
+               "hp": PZ.height,
+               "s": USZ.wilting_point_moisture[1:],
+               "husz": USZ.height[1:],
+               "hsz": SZ.height[1:],
+               "nsz": SZ.porosity[1:],
+               "nusz": USZ.porosity[1:],
+               "hszEST": SZ.height_estimated
+               }
+
+    df = pd.DataFrame(df_dict)
+    df = df.round(decimals=4)
+
     errors = []
     for c in water_flow_results.columns:
-        name_t = "t" + c
-        comparison = np.where(b[name_t] == water_flow_results[c], True, False)
+        comparison = np.where(df[c] == water_flow_results[c], True, False)
         if False in comparison:
             errors.append(c)
     return errors
@@ -28,5 +49,7 @@ def water_quality_comparison_test(file, nutrient):
         if False in comparison:
             errors.append(c)
     return errors
+
+
 
 
