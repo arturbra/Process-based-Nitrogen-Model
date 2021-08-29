@@ -4,52 +4,37 @@ import parameters
 import results_tests
 import datetime
 
+
 def water_flow_module(WFR, GP, USZ, PZ, SZ):
-    hpEND = 0
-    husz = USZ.husz_ini
-
-    if GP.hpipe > 0:
-        hsz = GP.hpipe
-    else:
-        hsz = GP.dpipe / 1000 + 0.03
-
-    nusz = USZ.nusz_ini
-    nsz = GP.ng
-    s = USZ.sw
     for time in range(len(WFR.tQrain)):
-        Qin = WFR.tQin[time]
-        Qrain = WFR.tQrain[time]
-        Emax = WFR.tEmax[time]
+        # PZ
+        PZ.overflow.append(PZ.f_weir_overflow(PZ.height_after[time], GP.dt, GP.inflow[time], GP.rain_inflow[time]))
+        PZ.height.append(PZ.f_height(time, GP))
+        PZ.infiltration_to_surrounding.append(PZ.f_infiltration_to_surrounding(USZ.Kf, USZ.A, PZ.height[time]))
+        PZ.infiltration_to_filter_material.append(PZ.f_infiltration_to_filter_material(USZ.Ks, PZ.height[time], USZ.height[time], USZ.A, GP.dt, USZ.wilting_point_moisture[time], USZ.porosity[time], PZ.infiltration_to_surrounding[time]))
+        PZ.height_after.append(PZ.f_height_after(time, GP))
 
-        # PZ#
-        Qover = PZ.f_weir_overflow(hpEND, GP.dt, Qin, Qrain)
-        height_pz = max(hpEND + GP.dt / PZ.Ab * (WFR.tQrain[time] + Qin - Qover), 0)  # beginning
-        Qinfp = PZ.f_infiltration_to_surrounding(USZ.Kf, USZ.A, height_pz)
-        Qpf = PZ.f_infiltration_to_filter_material(USZ.Ks, height_pz, husz, USZ.A, GP.dt, s, nusz, Qinfp)
-        hpEND = max(height_pz - GP.dt / PZ.Ab * (Qpf + Qinfp), 0)  # end
+        # USZ
+        USZ.wilting_point_estimated.append(USZ.f_wilting_point_moisture_estimation(time, PZ, GP))
+        USZ.capillary_rise.append(USZ.f_capillary_rise(GP.evapotranspiration_max[time], USZ.wilting_point_estimated[time], GP.Kc))
+        USZ.infiltration_to_sz.append(USZ.f_infiltration_to_sz(PZ.height_after[-1], USZ.height[time], USZ.porosity[time], GP.dt, USZ.wilting_point_estimated[time]))
+        USZ.wilting_point_estimated_after.append(USZ.f_wilting_point_moisture_next_interaction_estimation(time, SZ))
 
-        # USZ#
-        sEST = max(min(s + Qpf * GP.dt / (nusz * USZ.A * husz), 1), 0)
-        Qhc = USZ.f_capillary_rise(Emax, sEST, GP.Kc)
-        Qfs = USZ.f_infiltration_to_sz(hpEND, husz, nusz, GP.dt, sEST)
-        sEST2 = (sEST * nusz * husz + nsz * hsz) / (nusz * husz + nsz * hsz)
-        Qet = PZ.f_evapotranspiration(USZ.sw, USZ.sh, USZ.ss, GP.Kc, Emax, USZ.A, sEST2,
-                                      GP.dt)
-        Qet1 = Qet * (sEST * nusz * husz) / (sEST * nusz * husz + nsz * hsz)
-        Qet2 = Qet - Qet1
+        # EVT
+        PZ.evapotranspiration_overall.append(PZ.f_evapotranspiration_overall(USZ.sw, USZ.sh, USZ.ss, GP.Kc, GP.evapotranspiration_max[time], USZ.A, USZ.wilting_point_estimated_after[time],GP.dt))
+        PZ.evapotranspiration.append(PZ.f_evapotranspiration(time, USZ, SZ))
+        USZ.evapotranspiration.append(USZ.f_evapotranspiration(time, PZ))
 
-        # SZ#
-        hszEST = hsz + GP.dt * (Qfs - Qhc - Qet2) / USZ.A / nsz
-        Qinfsz = SZ.f_infiltration_to_surround(USZ.Kf, USZ.A, PZ.Cs, hszEST)
-        Qpipe = SZ.f_underdrain_flow(GP.hpipe, USZ.A, nsz, GP.dt, Qinfsz,
-                                     GP.Apipe, hszEST, GP.Cd)
-        hsz = hsz + GP.dt * (Qfs - Qhc - Qinfsz - Qpipe - Qet2) / USZ.A / nsz
-        husz = GP.L - hsz
+        # SZ
+        SZ.height_estimated.append(SZ.f_height_estimation(time, GP, USZ))
+        SZ.infiltration_to_surround.append(SZ.f_infiltration_to_surround(USZ.Kf, USZ.A, PZ.Cs, SZ.height_estimated[time]))
+        SZ.pipe_outflow.append(SZ.f_underdrain_flow(GP.hpipe, USZ.A, SZ.porosity[time], GP.dt, SZ.infiltration_to_surround[time], GP.Apipe, SZ.height_estimated[time], GP.Cd))
+        SZ.height.append(SZ.f_height(time, GP, USZ))
+        USZ.height.append(USZ.f_height(GP, SZ))
 
         # Porosity#
-        nsz = SZ.f_porosity(hsz, GP.L, GP.Dt, GP.Dg,
-                            GP.nf, GP.nt, GP.ng)
-        nusz = USZ.f_porosity(husz, hsz, GP.ng, GP.Dg, GP.Df)
+        SZ.porosity.append(SZ.f_porosity(SZ.height[-1], GP.L, GP.Dt, GP.Dg, GP.nf, GP.nt, GP.ng))
+        USZ.porosity.append(USZ.f_porosity(USZ.height[-1], SZ.height[-1], GP.ng, GP.Dg, GP.Df))
 
         if time == 0:
             husz_a = USZ.husz_ini
@@ -60,32 +45,31 @@ def water_flow_module(WFR, GP, USZ, PZ, SZ):
             nusz_a = WFR.tnusz[time - 1]
             s_a = WFR.ts[time - 1]
 
-        s = max(min(1.0, (s_a * husz_a * nusz_a * USZ.A + GP.dt * (Qpf + Qhc - Qfs - Qet1)) / (
-                    USZ.A * husz * nusz)), USZ.sh)
+        USZ.wilting_point_moisture.append(max(min(1.0, (s_a * husz_a * nusz_a * USZ.A + GP.dt * (PZ.infiltration_to_filter_material[time] + USZ.capillary_rise[time] - USZ.infiltration_to_sz[time] - PZ.evapotranspiration[time])) / (USZ.A * USZ.height[-1] * USZ.porosity[-1])), USZ.sh))
 
         # save all results to WFR
         WFR.tt.append(time)
-        WFR.tQover.append(Qover)
-        WFR.tQpf.append(Qpf)
-        WFR.tQinfp.append(Qinfp)
-        WFR.tQfs.append(Qfs)
-        WFR.tQhc.append(Qhc)
-        WFR.tQet.append(Qet)
-        WFR.tQinfsz.append(Qinfsz)
-        WFR.tQpipe.append(Qpipe)
-        WFR.tQet1.append(Qet1)
-        WFR.tQet2.append(Qet2)
+        WFR.tQover.append(PZ.overflow[time])
+        WFR.tQpf.append(PZ.infiltration_to_filter_material[time])
+        WFR.tQinfp.append(PZ.infiltration_to_surrounding[time])
+        WFR.tQfs.append(USZ.infiltration_to_sz[time])
+        WFR.tQhc.append(USZ.capillary_rise[time])
+        WFR.tQet.append(PZ.evapotranspiration_overall[time])
+        WFR.tQinfsz.append(SZ.infiltration_to_surround[time])
+        WFR.tQpipe.append(SZ.pipe_outflow[time])
+        WFR.tQet1.append(PZ.evapotranspiration[time])
+        WFR.tQet2.append(USZ.evapotranspiration[time])
 
-        WFR.thp.append(height_pz)
-        WFR.ts.append(s)
-        WFR.thusz.append(husz)
-        WFR.thsz.append(hsz)
-        WFR.thszEST.append(hszEST)
-        WFR.tnsz.append(nsz)
-        WFR.tnusz.append(nusz)
-        WFR.thpEND.append(hpEND)
-        WFR.tteta_usz.append(s * nusz)
-        WFR.tteta_sz.append(nsz)
+        WFR.thp.append(PZ.height[time])
+        WFR.ts.append(USZ.wilting_point_moisture[-1])
+        WFR.thusz.append(USZ.height[-1])
+        WFR.thsz.append(SZ.height[-1])
+        WFR.thszEST.append(SZ.height_estimated[time])
+        WFR.tnsz.append(SZ.porosity[-1])
+        WFR.tnusz.append(USZ.porosity[-1])
+        WFR.thpEND.append(PZ.height_after[-1])
+        WFR.tteta_usz.append(USZ.wilting_point_moisture[-1] * USZ.porosity[-1])
+        WFR.tteta_sz.append(SZ.porosity[-1])
 
 
 # **4. Model routine**
@@ -348,21 +332,20 @@ def water_quality_module(WFR, GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
     return data_o2, data_nh4, data_no3, data_doc
 
 def run(interaction):
-    SETUP_FILE = "modified_parameters.ini"
-    INFLOW_FILE = "concentration_inflow.csv"
-    WF_INFLOW = parameters.WaterInflow("water_inflow.csv")
-    WFR = parameters.WaterFlowResults(WF_INFLOW.tQrain, WF_INFLOW.tQin, WF_INFLOW.tEmax)
-    GP = parameters.GeneralParameters(SETUP_FILE)
+    SETUP_FILE = "parameters.ini"
+    WATER_FLOW_INPUT_FILE = "water_inflow.csv"
+    WATER_QUALITY_INPUT_FILE = "concentration_inflow.csv"
+    GP = parameters.GeneralParameters(SETUP_FILE, WATER_FLOW_INPUT_FILE)
+    WFR = parameters.WaterFlowResults(GP.rain_inflow, GP.inflow, GP.evapotranspiration_max)
     GP.hpipe = hpipes[interaction]
-    USZ = parameters.UnsaturatedZone(SETUP_FILE, GP.L, GP.hpipe,
-                                     GP.dz)
+    USZ = parameters.UnsaturatedZone(SETUP_FILE, GP.L, GP.hpipe, GP.dz)
     PZ = parameters.PondingZone(SETUP_FILE)
-    SZ = parameters.SaturatedZone(SETUP_FILE, GP.n, USZ.m_usz)
+    SZ = parameters.SaturatedZone(SETUP_FILE, GP, USZ)
     SOIL_PLANT = parameters.SoilPlant(SETUP_FILE, USZ.nusz_ini)
-    NH4 = parameters.Ammonia(USZ.m_usz, SZ.m_sz, SETUP_FILE, INFLOW_FILE)
-    NO3 = parameters.Nitrate(USZ.m_usz, SZ.m_sz, SETUP_FILE, INFLOW_FILE)
-    O2 = parameters.Oxygen(USZ.m_usz, SZ.m_sz, SETUP_FILE, INFLOW_FILE)
-    DOC = parameters.DissolvedOrganicCarbon(USZ.m_usz, SZ.m_sz, SETUP_FILE, INFLOW_FILE)
+    NH4 = parameters.Ammonia(USZ.m_usz, SZ.m_sz, SETUP_FILE, WATER_QUALITY_INPUT_FILE)
+    NO3 = parameters.Nitrate(USZ.m_usz, SZ.m_sz, SETUP_FILE, WATER_QUALITY_INPUT_FILE)
+    O2 = parameters.Oxygen(USZ.m_usz, SZ.m_sz, SETUP_FILE, WATER_QUALITY_INPUT_FILE)
+    DOC = parameters.DissolvedOrganicCarbon(USZ.m_usz, SZ.m_sz, SETUP_FILE, WATER_QUALITY_INPUT_FILE)
     water_flow_module(WFR, GP, USZ, PZ, SZ)
     #WFR.water_balance(GP.dt)
     print("hpipe:", GP.hpipe)
@@ -389,9 +372,9 @@ def run(interaction):
 
 if __name__ == '__main__':
     hpipes = [0, 0.1, 0.2, 0.3, 0.4]
-    results_paths = ["results/changed_parameters/hpipe_00/", "results/changed_parameters/hpipe_10/",
-                     "results/changed_parameters/hpipe_20/", "results/changed_parameters/hpipe_30/",
-                     "results/changed_parameters/hpipe_40/"]
+    results_paths = ["results/results_00/", "results/results_10/",
+                     "results/results_20/", "results/results_30/",
+                     "results/results_40/"]
     inicio = datetime.datetime.now()
 
     for test in range(len(hpipes)):

@@ -3,16 +3,6 @@ from math import pi
 import pandas as pd
 
 
-
-
-class WaterInflow:
-    def __init__(self, file):
-        csv_file = pd.read_csv(file, sep=";")
-        self.tQin = csv_file["Qin"]
-        self.tEmax = csv_file["ET"]
-        self.tQrain = csv_file["Qrain"]
-
-
 class WaterFlowResults:
     def __init__(self, tQrain, tQin, tEmax):
         self.indice = list(range(0, len(tQrain)))
@@ -70,7 +60,7 @@ class WaterFlowResults:
 
 
 class GeneralParameters:
-    def __init__(self, setup_file):
+    def __init__(self, setup_file, input_file):
         setup = configparser.ConfigParser()
         setup.read(setup_file)
         self.Ew = float(setup['GENERAL']['Ew'])
@@ -97,6 +87,12 @@ class GeneralParameters:
         self.Cd = float(setup['SATURATED_ZONE']['Cd'])
         self.Apipe = pi * (self.dpipe / (1000 * 2)) ** 2
 
+        csv_file = pd.read_csv(input_file, sep=";")
+        self.inflow = csv_file["Qin"]
+        self.evapotranspiration_max = csv_file["ET"]
+        self.rain_inflow = csv_file["Qrain"]
+
+
 
 class PondingZone:
     def __init__(self, setup_file):
@@ -112,6 +108,15 @@ class PondingZone:
         self.flagp = float(setup['PONDING_ZONE']['flagp'])
         self.k_denit = float(setup['DENITRIFICATION']['k_denit_pz'])
 
+        self.height = []
+        self.height_after = [0]
+        self.overflow = []
+        self.infiltration_to_surrounding = []
+        self.infiltration_to_filter_material = []
+        self.evapotranspiration_overall = []
+        self.evapotranspiration = []
+
+
     def f_concentration(self, cin, Qin_p, concentration_pz_before, Qpf, Qv, Rxi, height_pz, height_pz_before, dt, threshold = 0.00002):
         # delta_cp = ((cin*Qin_p - concentration_pz_before*(Qpf + Qv))*GENERAL_PARAMETERS.dt)/(height_pz*PZ.Ab) + Rxi*GENERAL_PARAMETERS.dt
         # concentration_pz = concentration_pz_before + delta_cp
@@ -125,7 +130,7 @@ class PondingZone:
             concentration_pz = 0
         return concentration_pz
 
-    def f_evapotranspiration(self, sw, sh, ss, Kc, Emax, A, sEST, dt):
+    def f_evapotranspiration_overall(self, sw, sh, ss, Kc, Emax, A, sEST, dt):
         if sEST <= sh:
             evapotranspiration = 0.0
         elif sEST <= sw:
@@ -136,6 +141,10 @@ class PondingZone:
             evapotranspiration = A * Emax * Kc
 
         evapotranspiration = evapotranspiration / (dt * 1000)
+        return evapotranspiration
+    
+    def f_evapotranspiration(self, time, unsaturated_zone, saturated_zone):
+        evapotranspiration = self.evapotranspiration_overall[time] * (unsaturated_zone.wilting_point_estimated[time] * unsaturated_zone.porosity[time] * unsaturated_zone.height[time]) / (unsaturated_zone.wilting_point_estimated[time] * unsaturated_zone.porosity[time] * unsaturated_zone.height[time] + saturated_zone.porosity[time] * saturated_zone.height[time])
         return evapotranspiration
 
     def f_weir_overflow(self, height_pz, dt, Qin, Qrain):
@@ -158,6 +167,14 @@ class PondingZone:
         infiltration = min(Ks * A * (height_pz + husz) / husz, height_pz * self.Ab / dt - Qinfp, (1.0 - s) * nusz * husz * A / dt)
         return infiltration
 
+    def f_height(self, time, general_parameters):
+        height = max(self.height_after[time] + general_parameters.dt / self.Ab * (general_parameters.rain_inflow[time] + general_parameters.inflow[time] - self.overflow[time]), 0)
+        return height
+    
+    def f_height_after(self, time, general_parameters):
+        height_after = max(self.height[time] - general_parameters.dt / self.Ab * (self.infiltration_to_filter_material[time] + self.infiltration_to_surrounding[time]), 0)
+        return height_after
+
 
 class UnsaturatedZone:
     def __init__(self, setup_file, L, hpipe, dz):
@@ -175,6 +192,15 @@ class UnsaturatedZone:
         self.Kf = float(setup['UNSATURATED_ZONE']['Kf'])
         self.m_usz = round((L - hpipe) / dz)
         self.unit_flux = []
+
+        self.height = [self.husz_ini]
+        self.porosity = [self.nusz_ini]
+        self.wilting_point_moisture = [self.sw]
+        self.wilting_point_estimated = []
+        self.capillary_rise = []
+        self.infiltration_to_sz = []
+        self.wilting_point_estimated_after = []
+        self.evapotranspiration = []
 
     def f_capillary_rise(self, Emax, sEST, Kc):
         s2 = sEST
@@ -201,6 +227,22 @@ class UnsaturatedZone:
         else:
             nusz = self.nusz_ini
         return nusz
+    
+    def f_wilting_point_moisture_estimation(self, time, ponding_zone, general_parameters):
+        wilting_point_estimated = max(min(self.wilting_point_moisture[time] + ponding_zone.infiltration_to_filter_material[time] * general_parameters.dt / (self.porosity[time] * self.A * self.height[time]), 1), 0)
+        return wilting_point_estimated
+    
+    def f_wilting_point_moisture_next_interaction_estimation(self, time, saturated_zone):
+        wilting_poins_estimated_next = (self.wilting_point_estimated[time] * self.porosity[time] * self.height[time] + saturated_zone.porosity[time] * saturated_zone.height[time]) / (self.porosity[time] * self.height[time] + saturated_zone.porosity[time] * saturated_zone.height[time])
+        return wilting_poins_estimated_next
+
+    def f_evapotranspiration(self, time, ponding_zone):
+        evapotranspiration = ponding_zone.evapotranspiration_overall[time] - ponding_zone.evapotranspiration[time]
+        return evapotranspiration
+
+    def f_height(self, general_parameters, saturated_zone):
+        height = general_parameters.L - saturated_zone.height[-1]
+        return height
 
     def f_alfa_beta(self, l):
         alfa = (self.m_usz - 1 - l) / (self.m_usz - 1)
@@ -228,15 +270,27 @@ class UnsaturatedZone:
         return peclet
 
 
+
+
 class SaturatedZone:
-    def __init__(self, setup_file, n, m_usz):
+    def __init__(self, setup_file, GP, USZ):
         setup = configparser.ConfigParser()
         setup.read(setup_file)
         self.Psz = float(setup['SATURATED_ZONE']['Psz'])
         self.flagsz = float(setup['SATURATED_ZONE']['flagsz'])
-        self.m_sz = n - m_usz
+        self.m_sz = GP.n - USZ.m_usz
         self.unit_flux = []
 
+        if GP.hpipe > 0:
+            self.height = [GP.hpipe]
+        else:
+            self.height = [GP.dpipe / 1000 + 0.03]
+
+        self.porosity = [GP.ng]
+        self.height_estimated = []
+        self.infiltration_to_surround = []
+        self.pipe_outflow = []
+        
     def f_infiltration_to_surround(self, Kf, A, Cs, hszEST):
         if self.flagsz == 1:  # lined
             infiltration_to_surround = 0.0
@@ -264,6 +318,14 @@ class SaturatedZone:
         else:
             nsz = ng
         return nsz
+    
+    def f_height_estimation(self, time, general_parameters, unsaturated_zone):
+        height_estimated = self.height[time] + general_parameters.dt * (unsaturated_zone.infiltration_to_sz[time] - unsaturated_zone.capillary_rise[time] - unsaturated_zone.evapotranspiration[time]) / unsaturated_zone.A / self.porosity[time]
+        return height_estimated
+    
+    def f_height(self, time, general_parameters, unsaturated_zone):
+        height = self.height[time] + general_parameters.dt * (unsaturated_zone.infiltration_to_sz[time] - unsaturated_zone.capillary_rise[time] - self.infiltration_to_surround[time] - self.pipe_outflow[time] - unsaturated_zone.evapotranspiration[time]) / unsaturated_zone.A / self.porosity[time]
+        return height
 
     def f_alfa_beta(self, j):
         alfa2 = (self.m_sz - 1 - j) / (self.m_sz - 1)
