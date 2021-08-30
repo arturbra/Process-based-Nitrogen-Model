@@ -12,7 +12,7 @@ def water_flow_module(WFR, GP, USZ, PZ, SZ):
         PZ.height.append(PZ.f_height(time, GP))
         PZ.infiltration_to_surround.append(PZ.f_infiltration_to_surround(USZ.Kf, USZ.A, PZ.height[time]))
         PZ.infiltration_to_filter_material.append(
-            PZ.f_infiltration_to_filter_material(USZ.Ks, PZ.height[time], USZ.height[time], USZ.A, GP.dt,
+            PZ.f_infiltration_to_filter_material(USZ.Ks, PZ.height[time], USZ.height_now, USZ.A, GP.dt,
                                                  USZ.wilting_point_moisture[time], USZ.porosity[time],
                                                  PZ.infiltration_to_surround[time]))
         PZ.height_after.append(PZ.f_height_after(time, GP))
@@ -22,7 +22,7 @@ def water_flow_module(WFR, GP, USZ, PZ, SZ):
         USZ.capillary_rise.append(
             USZ.f_capillary_rise(GP.evapotranspiration_max[time], USZ.wilting_point_estimated[time], GP.Kc))
         USZ.infiltration_to_sz.append(
-            USZ.f_infiltration_to_sz(PZ.height_after[-1], USZ.height[time], USZ.porosity[time], GP.dt,
+            USZ.f_infiltration_to_sz(PZ.height_after[-1], USZ.height_now, USZ.porosity[time], GP.dt,
                                      USZ.wilting_point_estimated[time]))
         USZ.wilting_point_estimated_after.append(USZ.f_wilting_point_moisture_next_interaction_estimation(time, SZ))
 
@@ -40,25 +40,25 @@ def water_flow_module(WFR, GP, USZ, PZ, SZ):
         SZ.pipe_outflow.append(
             SZ.f_underdrain_flow(GP.hpipe, USZ.A, SZ.porosity[time], GP.dt, SZ.infiltration_to_surround[time], GP.Apipe,
                                  SZ.height_estimated[time], GP.Cd))
-        SZ.height.append(SZ.f_height(time, GP, USZ))
-        USZ.height.append(USZ.f_height(GP, SZ))
+        SZ.height_now = SZ.f_height(time, GP, USZ)
+        USZ.height_now = USZ.f_height(GP, SZ)
 
         # Porosity#
-        SZ.porosity.append(SZ.f_porosity(SZ.height[-1], GP.L, GP.Dt, GP.Dg, GP.nf, GP.nt, GP.ng))
-        USZ.porosity.append(USZ.f_porosity(USZ.height[-1], SZ.height[-1], GP.ng, GP.Dg, GP.Df))
+        SZ.porosity.append(SZ.f_porosity(SZ.height_now, GP.L, GP.Dt, GP.Dg, GP.nf, GP.nt, GP.ng))
+        USZ.porosity.append(USZ.f_porosity(USZ.height_now, SZ.height_now, GP.ng, GP.Dg, GP.Df))
 
         if time == 0:
             husz_a = USZ.husz_ini
             nusz_a = USZ.nusz_ini
             s_a = USZ.sw
         else:
-            husz_a = WFR.thusz[time - 1]
+            husz_a = USZ.height[time - 1]
             nusz_a = WFR.tnusz[time - 1]
             s_a = WFR.ts[time - 1]
 
         USZ.wilting_point_moisture.append(max(min(1.0, (s_a * husz_a * nusz_a * USZ.A + GP.dt * (
                     PZ.infiltration_to_filter_material[time] + USZ.capillary_rise[time] - USZ.infiltration_to_sz[time] -
-                    PZ.evapotranspiration[time])) / (USZ.A * USZ.height[-1] * USZ.porosity[-1])), USZ.sh))
+                    PZ.evapotranspiration[time])) / (USZ.A * USZ.height_now * USZ.porosity[-1])), USZ.sh))
 
         USZ.theta.append(USZ.wilting_point_moisture[-1] * USZ.porosity[-1])
         SZ.theta.append(SZ.porosity[-1])
@@ -78,10 +78,14 @@ def water_flow_module(WFR, GP, USZ, PZ, SZ):
         # WFR.tteta_usz.append(USZ.theta[time])
         # WFR.tteta_sz.append(SZ.theta[time])
         # WFR.thszEST.append(SZ.height_estimated[time])
+        # WFR.thsz.append(SZ.height_now)
+        # WFR.thusz.append(USZ.height_now)
+
+        SZ.height.append(SZ.height_now)
+        USZ.height.append(USZ.height_now)
+
 
         WFR.ts.append(USZ.wilting_point_moisture[-1])
-        WFR.thusz.append(USZ.height[-1])
-        WFR.thsz.append(SZ.height[-1])
         WFR.tnsz.append(SZ.porosity[-1])
         WFR.tnusz.append(USZ.porosity[-1])
         WFR.thpEND.append(PZ.height_after[-1])
@@ -348,24 +352,24 @@ def water_quality_module(WFR, GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
 
         # Corrective step
         O2.mass_balance.append(O2.f_mass_balance_stormwater(time, USZ, SZ, WFR, PZ, GP))
-        O2.mass_stormwater_now = O2.f_mass_stormwater(time, USZ.m_usz, SZ.m_sz, PZ.Ab, USZ.theta, WFR.thusz,
-                                                      SZ.theta, WFR.thsz, GP.hpipe)
-        O2.f_mass_balance_concentration(time, USZ.m_usz, PZ.Ab, USZ.theta, WFR.thusz)
+        O2.mass_stormwater_now = O2.f_mass_stormwater(time, USZ.m_usz, SZ.m_sz, PZ.Ab, USZ.theta, USZ.height,
+                                                      SZ.theta, SZ.height, GP.hpipe)
+        O2.f_mass_balance_concentration(time, USZ.m_usz, PZ.Ab, USZ.theta, USZ.height)
 
         NH4.mass_balance.append(NH4.f_mass_balance_stormwater(time, USZ, SZ, WFR, PZ, GP, SOIL_PLANT))
-        NH4.mass_stormwater_now = NH4.f_mass_stormwater(time, USZ.m_usz, SZ.m_sz, PZ.Ab, USZ.theta, WFR.thusz,
-                                                        SZ.theta, WFR.thsz, GP.hpipe)
-        NH4.f_mass_balance_concentration(time, USZ.m_usz, PZ.Ab, USZ.theta, WFR.thusz)
+        NH4.mass_stormwater_now = NH4.f_mass_stormwater(time, USZ.m_usz, SZ.m_sz, PZ.Ab, USZ.theta, USZ.height,
+                                                        SZ.theta, SZ.height, GP.hpipe)
+        NH4.f_mass_balance_concentration(time, USZ.m_usz, PZ.Ab, USZ.theta, USZ.height)
 
         NO3.mass_balance.append(NO3.f_mass_balance_stormwater(time, USZ, SZ, WFR, PZ, GP))
-        NO3.mass_stormwater_now = NO3.f_mass_stormwater(time, USZ.m_usz, SZ.m_sz, PZ.Ab, USZ.theta, WFR.thusz,
-                                                        SZ.theta, WFR.thsz, GP.hpipe)
-        NO3.f_mass_balance_concentration(time, USZ.m_usz, PZ.Ab, USZ.theta, WFR.thusz)
+        NO3.mass_stormwater_now = NO3.f_mass_stormwater(time, USZ.m_usz, SZ.m_sz, PZ.Ab, USZ.theta, USZ.height,
+                                                        SZ.theta, SZ.height, GP.hpipe)
+        NO3.f_mass_balance_concentration(time, USZ.m_usz, PZ.Ab, USZ.theta, USZ.height)
 
         DOC.mass_balance.append(DOC.f_mass_balance_stormwater(time, USZ, SZ, WFR, PZ, GP, SOIL_PLANT))
-        DOC.mass_stormwater_now = DOC.f_mass_stormwater(time, USZ.m_usz, SZ.m_sz, PZ.Ab, USZ.theta, WFR.thusz,
-                                                        SZ.theta, WFR.thsz, GP.hpipe)
-        DOC.f_mass_balance_concentration(time, USZ.m_usz, PZ.Ab, USZ.theta, WFR.thusz)
+        DOC.mass_stormwater_now = DOC.f_mass_stormwater(time, USZ.m_usz, SZ.m_sz, PZ.Ab, USZ.theta, USZ.height,
+                                                        SZ.theta, SZ.height, GP.hpipe)
+        DOC.f_mass_balance_concentration(time, USZ.m_usz, PZ.Ab, USZ.theta, USZ.height)
 
         # adding layers of USZ in time
         O2.concentration_usz.append(O2.concentration_usz_layers_now)

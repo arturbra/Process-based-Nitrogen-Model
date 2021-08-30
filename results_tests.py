@@ -22,8 +22,8 @@ def water_flow_comparison_test(original_water_flow_results_file, GP, PZ, USZ, SZ
                "Qinfsz": SZ.infiltration_to_surround,
                "hp": PZ.height,
                "s": USZ.wilting_point_moisture[1:],
-               "husz": USZ.height[1:],
-               "hsz": SZ.height[1:],
+               "husz": USZ.height,
+               "hsz": SZ.height,
                "nsz": SZ.porosity[1:],
                "nusz": USZ.porosity[1:],
                "hszEST": SZ.height_estimated
