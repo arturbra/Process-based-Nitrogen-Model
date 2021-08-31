@@ -107,26 +107,19 @@ class PondingZone:
         self.Pp = float(setup['PONDING_ZONE']['Pp'])
         self.flagp = float(setup['PONDING_ZONE']['flagp'])
         self.k_denit = float(setup['DENITRIFICATION']['k_denit_pz'])
-
         self.height = []
+        self.height_now = 0
         self.height_after = []
         self.height_after_now = 0
+        self.height_before = 0
         self.overflow = []
         self.infiltration_to_surround = []
         self.infiltration_to_filter_material = []
         self.evapotranspiration_overall = []
         self.evapotranspiration = []
 
-
-    def f_concentration(self, cin, Qin_p, concentration_pz_before, Qpf, Qv, Rxi, height_pz, height_pz_before, dt, threshold = 0.00002):
-        # delta_cp = ((cin*Qin_p - concentration_pz_before*(Qpf + Qv))*GP.dt)/(height_pz*PZ.Ab) + Rxi*GP.dt
-        # concentration_pz = concentration_pz_before + delta_cp
-
-        # concentration_pz = Rxi*GP.dt + (cin*Qin_p*GP.dt)/(height_pz*PZ.Ab + GP.dt*(Qpf + Qv))
-
-        concentration_pz = (concentration_pz_before * height_pz_before * self.Ab + (cin * Qin_p - concentration_pz_before * (Qpf + Qv) + Rxi * height_pz * self.Ab) * dt) / (
-                    height_pz * self.Ab)
-
+    def f_concentration(self, time, GP, pollutant, threshold = 0.00002):
+        concentration_pz = (pollutant.concentration_pz_before * self.height_before * self.Ab + (pollutant.concentration_inflow[time] * GP.inflow[time] - pollutant.concentration_pz_before * (self.infiltration_to_filter_material[time] + self.overflow[time]) + pollutant.reaction_rate_pz_now * self.height_now * self.Ab) * GP.dt) / (self.height_now * self.Ab)
         if concentration_pz < threshold:
             concentration_pz = 0
         return concentration_pz
@@ -209,6 +202,7 @@ class UnsaturatedZone:
         self.wilting_point_estimated_after = []
         self.evapotranspiration = []
         self.theta = []
+        self.theta_after = 0
 
     def f_capillary_rise(self, time, GP):
         wilting_point = self.wilting_point_estimated[time]
@@ -298,7 +292,9 @@ class SaturatedZone:
         self.height_estimated = []
         self.infiltration_to_surround = []
         self.pipe_outflow = []
+        self.pipe_outflow_now = 0
         self.theta = []
+        self.theta_after = 0
         if GP.hpipe > 0:
             self.height_now = GP.hpipe
         else:
