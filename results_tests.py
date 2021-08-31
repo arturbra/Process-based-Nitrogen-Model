@@ -1,13 +1,14 @@
 import numpy as np
 import pandas as pd
 
+
 def water_flow_comparison_test(original_water_flow_results_file, GP, PZ, USZ, SZ):
     water_flow_results = pd.read_csv(original_water_flow_results_file)
     water_flow_results = water_flow_results.round(decimals=4)
     df_dict = {"t": range(0, len(GP.rain_inflow)),
                "Qin": GP.inflow,
                "Qet": PZ.evapotranspiration_overall,
-               "hpEND": PZ.height_after[1:],
+               "hpEND": PZ.height_after,
                "Qpf": PZ.infiltration_to_filter_material,
                "Qover": PZ.overflow,
                "Qfs": USZ.infiltration_to_sz,
@@ -21,11 +22,11 @@ def water_flow_comparison_test(original_water_flow_results_file, GP, PZ, USZ, SZ
                "Qinfp": PZ.infiltration_to_surround,
                "Qinfsz": SZ.infiltration_to_surround,
                "hp": PZ.height,
-               "s": USZ.wilting_point_moisture[1:],
+               "s": USZ.wilting_point_moisture,
                "husz": USZ.height,
                "hsz": SZ.height,
-               "nsz": SZ.porosity[1:],
-               "nusz": USZ.porosity[1:],
+               "nsz": SZ.porosity,
+               "nusz": USZ.porosity,
                "hszEST": SZ.height_estimated
                }
 

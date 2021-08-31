@@ -109,7 +109,8 @@ class PondingZone:
         self.k_denit = float(setup['DENITRIFICATION']['k_denit_pz'])
 
         self.height = []
-        self.height_after = [0]
+        self.height_after = []
+        self.height_after_now = 0
         self.overflow = []
         self.infiltration_to_surround = []
         self.infiltration_to_filter_material = []
@@ -130,49 +131,49 @@ class PondingZone:
             concentration_pz = 0
         return concentration_pz
 
-    def f_evapotranspiration_overall(self, sw, sh, ss, Kc, Emax, A, sEST, dt):
-        if sEST <= sh:
+    def f_evapotranspiration_overall(self, time, USZ, GP):
+        if USZ.wilting_point_estimated_after[time] <= USZ.sh:
             evapotranspiration = 0.0
-        elif sEST <= sw:
-            evapotranspiration = A * Emax * Kc * (sEST - sh) / (sw - sh)
-        elif sEST <= ss:
-            evapotranspiration = A * Emax * Kc * (sEST - sw) / (ss - sw)
+        elif USZ.wilting_point_estimated_after[time] <= USZ.sw:
+            evapotranspiration = USZ.A * GP.evapotranspiration_max[time] * GP.Kc * (USZ.wilting_point_estimated_after[time] - USZ.sh) / (USZ.sw - USZ.sh)
+        elif USZ.wilting_point_estimated_after[time] <= USZ.ss:
+            evapotranspiration = USZ.A * GP.evapotranspiration_max[time] * GP.Kc * (USZ.wilting_point_estimated_after[time] - USZ.sw) / (USZ.ss - USZ.sw)
         else:
-            evapotranspiration = A * Emax * Kc
+            evapotranspiration = USZ.A * GP.evapotranspiration_max[time] * GP.Kc
 
-        evapotranspiration = evapotranspiration / (dt * 1000)
+        evapotranspiration = evapotranspiration / (GP.dt * 1000)
         return evapotranspiration
     
     def f_evapotranspiration(self, time, USZ, SZ):
-        evapotranspiration = self.evapotranspiration_overall[time] * (USZ.wilting_point_estimated[time] * USZ.porosity[time] * USZ.height_now) / (USZ.wilting_point_estimated[time] * USZ.porosity[time] * USZ.height_now + SZ.porosity[time] * SZ.height_now)
+        evapotranspiration = self.evapotranspiration_overall[time] * (USZ.wilting_point_estimated[time] * USZ.porosity_now * USZ.height_now) / (USZ.wilting_point_estimated[time] * USZ.porosity_now * USZ.height_now + SZ.porosity_now * SZ.height_now)
         return evapotranspiration
 
-    def f_weir_overflow(self, height_pz, dt, Qin, Qrain):
-        volume = height_pz * self.Ab + dt * (Qin + Qrain)
+    def f_weir_overflow(self, time, GP):
+        volume = self.height_after_now * self.Ab + GP.dt * (GP.inflow[time] + GP.rain_inflow[time])
         if volume > self.Hover * self.Ab:
             height = volume / self.Ab
-            weir_overflow = min((height - self.Hover) * self.Ab / dt, self.kWeir * (height - self.Hover) ** self.expWeir)
+            weir_overflow = min((height - self.Hover) * self.Ab / GP.dt, self.kWeir * (height - self.Hover) ** self.expWeir)
         else:
             weir_overflow = 0
         return weir_overflow
 
-    def f_infiltration_to_surround(self, Kf, A, hpEST):
+    def f_infiltration_to_surround(self, time, USZ):
         if self.flagp == 1:
             infiltration = 0
         else:
-            infiltration = Kf * ((self.Ab - A) + self.Cs * self.Pp * hpEST)
+            infiltration = USZ.Kf * ((self.Ab - USZ.A) + self.Cs * self.Pp * self.height[time])
         return infiltration
 
-    def f_infiltration_to_filter_material(self, Ks, height_pz, husz, A, dt, s, nusz, Qinfp):
-        infiltration = min(Ks * A * (height_pz + husz) / husz, height_pz * self.Ab / dt - Qinfp, (1.0 - s) * nusz * husz * A / dt)
+    def f_infiltration_to_filter_material(self, time, USZ, GP):
+        infiltration = min(USZ.Ks * USZ.A * (self.height[time] + USZ.height_now) / USZ.height_now, self.height[time] * self.Ab / GP.dt - self.infiltration_to_surround[time], (1.0 - USZ.wilting_point_moisture_now) * USZ.porosity_now * USZ.height_now * USZ.A / GP.dt)
         return infiltration
 
-    def f_height(self, time, general_parameters):
-        height = max(self.height_after[time] + general_parameters.dt / self.Ab * (general_parameters.rain_inflow[time] + general_parameters.inflow[time] - self.overflow[time]), 0)
+    def f_height(self, time, GP):
+        height = max(self.height_after_now + GP.dt / self.Ab * (GP.rain_inflow[time] + GP.inflow[time] - self.overflow[time]), 0)
         return height
     
-    def f_height_after(self, time, general_parameters):
-        height_after = max(self.height[time] - general_parameters.dt / self.Ab * (self.infiltration_to_filter_material[time] + self.infiltration_to_surround[time]), 0)
+    def f_height_after(self, time, GP):
+        height_after = max(self.height[time] - GP.dt / self.Ab * (self.infiltration_to_filter_material[time] + self.infiltration_to_surround[time]), 0)
         return height_after
 
 
@@ -195,8 +196,13 @@ class UnsaturatedZone:
 
         self.height = []
         self.height_now = self.husz_ini
-        self.porosity = [self.nusz_ini]
-        self.wilting_point_moisture = [self.sw]
+        self.height_before = self.husz_ini
+        self.porosity = []
+        self.porosity_now = self.nusz_ini
+        self.porosity_before = self.nusz_ini
+        self.wilting_point_moisture = []
+        self.wilting_point_moisture_now = self.sw
+        self.wilting_point_moisture_before = self.sw
         self.wilting_point_estimated = []
         self.capillary_rise = []
         self.infiltration_to_sz = []
@@ -204,46 +210,52 @@ class UnsaturatedZone:
         self.evapotranspiration = []
         self.theta = []
 
-    def f_capillary_rise(self, Emax, sEST, Kc):
-        s2 = sEST
+    def f_capillary_rise(self, time, GP):
+        wilting_point = self.wilting_point_estimated[time]
         den = self.sfc - self.ss
         if den == 0:
             den = 0.000001
-        Cr = 4 * Emax * Kc / (2.5 * (den) ** 2)
-        if s2 >= self.ss and s2 <= self.sfc:
-            capillary_rise = self.A * Cr * (s2 - self.ss) * (self.sfc - s2)
+        capillary = 4 * GP.evapotranspiration_max[time] * GP.Kc / (2.5 * den ** 2)
+        if self.ss <= wilting_point <= self.sfc:
+            capillary_rise = self.A * capillary * (wilting_point - self.ss) * (self.sfc - wilting_point)
         else:
             capillary_rise = 0
         return capillary_rise
 
-    def f_infiltration_to_sz(self, height_pz, husz, nusz, dt, sEST):
-        if sEST >= self.sfc:
-            Qfs = min((self.A * self.Ks * (height_pz + husz) / husz) * sEST ** self.gama, (sEST - self.sfc) * nusz * self.A * husz / dt)
+    def f_infiltration_to_sz(self, time, PZ, GP):
+        if self.wilting_point_estimated[time] >= self.sfc:
+            infiltration_to_sz = min((self.A * self.Ks * (PZ.height_after_now + self.height_now) / self.height_now) * self.wilting_point_estimated[time] ** self.gama, (self.wilting_point_estimated[time] - self.sfc) * self.porosity_now * self.A * self.height_now / GP.dt)
         else:
-            Qfs = 0
-        return Qfs
+            infiltration_to_sz = 0
+        return infiltration_to_sz
 
-    def f_porosity(self, husz, hsz, ng, Dg, Df):
-        if hsz < Dg:
-            nusz = (self.nusz_ini * Df + ng * (Dg - hsz)) / husz
+    def f_porosity(self, GP, SZ):
+        if SZ.height_now < GP.Dg:
+            porosity = (self.nusz_ini * GP.Df + GP.ng * (GP.Dg - SZ.height_now)) / self.height_now
         else:
-            nusz = self.nusz_ini
-        return nusz
+            porosity = self.nusz_ini
+        return porosity
     
-    def f_wilting_point_moisture_estimation(self, time, PZ, general_parameters):
-        wilting_point_estimated = max(min(self.wilting_point_moisture[time] + PZ.infiltration_to_filter_material[time] * general_parameters.dt / (self.porosity[time] * self.A * self.height_now), 1), 0)
+    def f_wilting_point_moisture_estimation(self, time, PZ, GP):
+        wilting_point_estimated = max(min(self.wilting_point_moisture_now + PZ.infiltration_to_filter_material[time] * GP.dt / (self.porosity_now * self.A * self.height_now), 1), 0)
         return wilting_point_estimated
     
     def f_wilting_point_moisture_next_interaction_estimation(self, time, SZ):
-        wilting_poins_estimated_next = (self.wilting_point_estimated[time] * self.porosity[time] * self.height_now + SZ.porosity[time] * SZ.height_now) / (self.porosity[time] * self.height_now + SZ.porosity[time] * SZ.height_now)
+        wilting_poins_estimated_next = (self.wilting_point_estimated[time] * self.porosity_now * self.height_now + SZ.porosity_now * SZ.height_now) / (self.porosity_now * self.height_now + SZ.porosity_now * SZ.height_now)
         return wilting_poins_estimated_next
-
+    
+    def f_wilting_point_moisture(self, time, GP, PZ):
+        wilting_point = max(min(1.0, (self.wilting_point_moisture_before * self.height_before * self.porosity_before * self.A + GP.dt * (
+                PZ.infiltration_to_filter_material[time] + self.capillary_rise[time] - self.infiltration_to_sz[time] -
+                PZ.evapotranspiration[time])) / (self.A * self.height_now * self.porosity_now)), self.sh)
+        return wilting_point
+    
     def f_evapotranspiration(self, time, PZ):
         evapotranspiration = PZ.evapotranspiration_overall[time] - PZ.evapotranspiration[time]
         return evapotranspiration
 
-    def f_height(self, general_parameters, SZ):
-        height = general_parameters.L - SZ.height_now
+    def f_height(self, GP, SZ):
+        height = GP.L - SZ.height_now
         return height
 
     def f_alfa_beta(self, l):
@@ -272,8 +284,6 @@ class UnsaturatedZone:
         return peclet
 
 
-
-
 class SaturatedZone:
     def __init__(self, setup_file, GP, USZ):
         setup = configparser.ConfigParser()
@@ -282,52 +292,52 @@ class SaturatedZone:
         self.flagsz = float(setup['SATURATED_ZONE']['flagsz'])
         self.m_sz = GP.n - USZ.m_usz
         self.unit_flux = []
-
-        if GP.hpipe > 0:
-            self.height_now = GP.hpipe
-        else:
-            self.height_now = GP.dpipe / 1000 + 0.03
         self.height = []
-        self.porosity = [GP.ng]
+        self.porosity = []
+        self.porosity_now = GP.ng
         self.height_estimated = []
         self.infiltration_to_surround = []
         self.pipe_outflow = []
         self.theta = []
+        if GP.hpipe > 0:
+            self.height_now = GP.hpipe
+        else:
+            self.height_now = GP.dpipe / 1000 + 0.03
         
-    def f_infiltration_to_surround(self, Kf, A, Cs, hszEST):
+    def f_infiltration_to_surround(self, time, PZ, USZ):
         if self.flagsz == 1:  # lined
             infiltration_to_surround = 0.0
         else:
-            infiltration_to_surround = Kf * (A + Cs * self.Psz * hszEST)
+            infiltration_to_surround = USZ.Kf * (USZ.A + PZ.Cs * self.Psz * self.height_estimated[time])
         return infiltration_to_surround
 
-    def f_underdrain_flow(self, hpipe, A, nsz, dt, Qinfsz, Apipe, hszEST, Cd):
-        if hszEST <= hpipe:
+    def f_underdrain_flow(self, time, GP, USZ):
+        if self.height_estimated[time] <= GP.hpipe:
             underdrain_flow = 0
         else:
-            underdrain_flow_max = (hszEST - hpipe) * A * nsz / dt - Qinfsz
+            underdrain_flow_max = (self.height_estimated[time] - GP.hpipe) * USZ.A * self.porosity_now / GP.dt - self.infiltration_to_surround[time]
             underdrain_flow_max = max(0, underdrain_flow_max)
-            underdrain_flow_possible = Cd * Apipe * ((hszEST - hpipe) * 2 * 9.81) ** 0.5
+            underdrain_flow_possible = GP.Cd * GP.Apipe * ((self.height_estimated[time] - GP.hpipe) * 2 * 9.81) ** 0.5
             underdrain_flow_possible = max(0, underdrain_flow_possible)
             underdrain_flow = min(underdrain_flow_max, underdrain_flow_possible)
 
         return underdrain_flow
 
-    def f_porosity(self, hsz, L, Dt, Dg, nf, nt, ng):
-        if hsz > Dt + Dg and hsz <= L:
-            nsz = ((ng * Dg + nt * Dt + nf * (hsz - Dg - Dt))) / hsz
-        elif hsz > Dg and hsz <= Dg + Dt:
-            nsz = (ng * Dg + nt * (hsz - Dg)) / hsz
+    def f_porosity(self, GP):
+        if GP.Dt + GP.Dg < self.height_now <= GP.L:
+            porosity = (GP.ng * GP.Dg + GP.nt * GP.Dt + GP.nf * (self.height_now - GP.Dg - GP.Dt)) / self.height_now
+        elif GP.Dg < self.height_now <= GP.Dg + GP.Dt:
+            porosity = (GP.ng * GP.Dg + GP.nt * (self.height_now - GP.Dg)) / self.height_now
         else:
-            nsz = ng
-        return nsz
+            porosity = GP.ng
+        return porosity
     
-    def f_height_estimation(self, time, general_parameters, USZ):
-        height_estimated = self.height_now + general_parameters.dt * (USZ.infiltration_to_sz[time] - USZ.capillary_rise[time] - USZ.evapotranspiration[time]) / USZ.A / self.porosity[time]
+    def f_height_estimation(self, time, GP, USZ):
+        height_estimated = self.height_now + GP.dt * (USZ.infiltration_to_sz[time] - USZ.capillary_rise[time] - USZ.evapotranspiration[time]) / USZ.A / self.porosity_now
         return height_estimated
     
-    def f_height(self, time, general_parameters, USZ):
-        height = self.height_now + general_parameters.dt * (USZ.infiltration_to_sz[time] - USZ.capillary_rise[time] - self.infiltration_to_surround[time] - self.pipe_outflow[time] - USZ.evapotranspiration[time]) / USZ.A / self.porosity[time]
+    def f_height(self, time, GP, USZ):
+        height = self.height_now + GP.dt * (USZ.infiltration_to_sz[time] - USZ.capillary_rise[time] - self.infiltration_to_surround[time] - self.pipe_outflow[time] - USZ.evapotranspiration[time]) / USZ.A / self.porosity_now
         return height
 
     def f_alfa_beta(self, j):
@@ -716,7 +726,7 @@ class Pollutant:
         self.mass_accumulated_pipe_outflow.append(self.f_mass_pipe_outflow(time, USZ.m_usz, SZ.m_sz, SZ.pipe_outflow, GP.dt, GP.hpipe))
         self.mass_accumulated_infiltrated_to_sz.append(self.f_mass_infiltration_to_sz(time, USZ.m_usz, SZ.m_sz, SZ.infiltration_to_surround, GP.dt, GP.hpipe))
         self.mass_accumulated_evapotranspiration.append(self.f_mass_evapotranspiration(time, PZ.evapotranspiration_overall, GP.dt))
-        self.mass_pz.append(self.f_mass_pz(time, WFR.thpEND, PZ.Ab))
+        self.mass_pz.append(self.f_mass_pz(time, PZ.height_after, PZ.Ab))
         mass_balance_stormwater = self.mass_accumulated_inflow[-1] - self.mass_pz[-1] - self.mass_accumulated_overflow[-1] - self.mass_accumulated_pipe_outflow[-1] - self.mass_accumulated_infiltrated_to_sz[-1] - self.mass_accumulated_evapotranspiration[-1] - self.mass_soil[-1] - self.mass_accumulated_reaction[-1]
         return mass_balance_stormwater
 
@@ -841,7 +851,7 @@ class Nitrate(Pollutant):
         self.mass_accumulated_pipe_outflow.append(self.f_mass_pipe_outflow(time, USZ.m_usz, SZ.m_sz, SZ.pipe_outflow, GP.dt, GP.hpipe))
         self.mass_accumulated_infiltrated_to_sz.append(self.f_mass_infiltration_to_sz(time, USZ.m_usz, SZ.m_sz, SZ.infiltration_to_surround, GP.dt, GP.hpipe))
         self.mass_accumulated_evapotranspiration.append(self.f_mass_evapotranspiration(time, PZ.evapotranspiration_overall, GP.dt))
-        self.mass_pz.append(self.f_mass_pz(time, WFR.thpEND, PZ.Ab))
+        self.mass_pz.append(self.f_mass_pz(time, PZ.height_after, PZ.Ab))
         mass_balance_stormwater = self.mass_accumulated_inflow[-1] - self.mass_pz[-1] - self.mass_accumulated_overflow[-1] - self.mass_accumulated_pipe_outflow[-1] - self.mass_accumulated_infiltrated_to_sz[-1] - self.mass_accumulated_evapotranspiration[-1] - self.mass_soil[-1] - self.mass_accumulated_reaction[-1]
         return mass_balance_stormwater
 
@@ -894,7 +904,7 @@ class Oxygen(Pollutant):
         self.mass_accumulated_pipe_outflow.append(self.f_mass_pipe_outflow(time, USZ.m_usz, SZ.m_sz, SZ.pipe_outflow, GP.dt, GP.hpipe))
         self.mass_accumulated_infiltrated_to_sz.append(self.f_mass_infiltration_to_sz(time, USZ.m_usz, SZ.m_sz, SZ.infiltration_to_surround, GP.dt, GP.hpipe))
         self.mass_accumulated_evapotranspiration.append(self.f_mass_evapotranspiration(time, PZ.evapotranspiration_overall, GP.dt))
-        self.mass_pz.append(self.f_mass_pz(time, WFR.thpEND, PZ.Ab))
+        self.mass_pz.append(self.f_mass_pz(time, PZ.height_after, PZ.Ab))
         mass_balance_stormwater = self.mass_accumulated_inflow[-1] - self.mass_pz[-1] - self.mass_accumulated_overflow[-1] - self.mass_accumulated_pipe_outflow[-1] - self.mass_accumulated_infiltrated_to_sz[-1] - self.mass_accumulated_evapotranspiration[-1] - self.mass_soil[-1] - self.mass_accumulated_reaction[-1]
         return mass_balance_stormwater
 
