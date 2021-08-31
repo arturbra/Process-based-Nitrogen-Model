@@ -269,9 +269,9 @@ class UnsaturatedZone:
 
         return unit_flux
 
-    def f_peclet(self, unit_flux_usz, D, dz):
-        if D > 0:
-            peclet = unit_flux_usz * dz / D
+    def f_peclet(self, GP, pollutant):
+        if pollutant.D > 0:
+            peclet = self.unit_flux_now * GP.dz / pollutant.D
         else:
             peclet = 100
 
@@ -601,16 +601,14 @@ class Pollutant:
                         sz_layer - 1]) / dz
         return dc, dc_dz        
 
-    def f_delta_concentration_usz(self, time, usz_layer, m_usz, tteta_usz, theta_usz_after, unit_flux_now, ro, f, dt, dz, threshold=0.0000000000000001):
-        dc, dc_dz = self.f_delta_concentration_layer_usz(usz_layer, dz, m_usz)
-
-
-        delta_concentration = self.f_transport(tteta_usz[time], theta_usz_after, self.concentration_usz_layers[usz_layer],
+    def f_delta_concentration_usz(self, time, usz_layer, GP, USZ, SOIL_PLANT, threshold=0.0000000000000001):
+        dc, dc_dz = self.f_delta_concentration_layer_usz(usz_layer, GP.dz, USZ.m_usz)
+        delta_concentration = self.f_transport(USZ.theta[time], USZ.theta_after, self.concentration_usz_layers[usz_layer],
                                       self.concentration_soil_usz_layer, dc, dc_dz, self.kads, self.kdes,
-                                      self.D, unit_flux_now, self.reaction_rate_usz_now, ro, f,
-                                      dt, dz)
+                                      self.D, USZ.unit_flux_now, self.reaction_rate_usz_now, SOIL_PLANT.ro, SOIL_PLANT.f,
+                                      GP.dt, GP.dz)
 
-        if theta_usz_after > 0:
+        if USZ.theta_after > 0:
             concentration_now = self.concentration_usz_layers[usz_layer] + delta_concentration
         else:
             concentration_now = 0

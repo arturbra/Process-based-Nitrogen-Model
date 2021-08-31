@@ -170,28 +170,20 @@ def water_quality_module(WFR, GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
                 NO3.reaction_rate_usz_layers.append(NO3.f_reaction_conversion(GP, USZ))
                 DOC.reaction_rate_usz_layers.append(DOC.f_reaction_conversion(GP, USZ))
 
-                O2.peclet = USZ.f_peclet(USZ.unit_flux_now, O2.D, GP.dz)
-                O2.delta_concentration = O2.f_delta_concentration_usz(time, usz_layer, USZ.m_usz, USZ.theta,
-                                                                      USZ.theta_after, USZ.unit_flux_now, SOIL_PLANT.ro,
-                                                                      SOIL_PLANT.f, GP.dt, GP.dz)
+                O2.peclet = USZ.f_peclet(GP, O2)
+                O2.delta_concentration = O2.f_delta_concentration_usz(time, usz_layer, GP, USZ, SOIL_PLANT)
                 O2.concentration_usz_layers_now.append(O2.delta_concentration)
 
-                NH4.peclet = USZ.f_peclet(USZ.unit_flux_now, NH4.D, GP.dz)
-                NH4.delta_concentration = NH4.f_delta_concentration_usz(time, usz_layer, USZ.m_usz, USZ.theta,
-                                                                        USZ.theta_after, USZ.unit_flux_now,
-                                                                        SOIL_PLANT.ro, SOIL_PLANT.f, GP.dt, GP.dz)
+                NH4.peclet = USZ.f_peclet(GP, NH4)
+                NH4.delta_concentration = NH4.f_delta_concentration_usz(time, usz_layer, GP, USZ, SOIL_PLANT)
                 NH4.concentration_usz_layers_now.append(NH4.delta_concentration)
 
-                NO3.peclet = USZ.f_peclet(USZ.unit_flux_now, NO3.D, GP.dz)
-                NO3.delta_concentration = NO3.f_delta_concentration_usz(time, usz_layer, USZ.m_usz, USZ.theta,
-                                                                        USZ.theta_after, USZ.unit_flux_now,
-                                                                        SOIL_PLANT.ro, SOIL_PLANT.f, GP.dt, GP.dz)
+                NO3.peclet = USZ.f_peclet(GP, NO3)
+                NO3.delta_concentration = NO3.f_delta_concentration_usz(time, usz_layer, GP, USZ, SOIL_PLANT)
                 NO3.concentration_usz_layers_now.append(NO3.delta_concentration)
 
-                DOC.peclet = USZ.f_peclet(USZ.unit_flux_now, DOC.D, GP.dz)
-                DOC.delta_concentration = DOC.f_delta_concentration_usz(time, usz_layer, USZ.m_usz, USZ.theta,
-                                                                        USZ.theta_after, USZ.unit_flux_now,
-                                                                        SOIL_PLANT.ro, SOIL_PLANT.f, GP.dt, GP.dz)
+                DOC.peclet = USZ.f_peclet(GP, DOC)
+                DOC.delta_concentration = DOC.f_delta_concentration_usz(time, usz_layer, GP, USZ, SOIL_PLANT)
                 DOC.concentration_usz_layers_now.append(DOC.delta_concentration)
 
         #####   SZ   #####
