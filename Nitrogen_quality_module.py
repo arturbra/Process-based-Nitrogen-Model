@@ -217,6 +217,7 @@ def water_quality_module(WFR, GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
             O2.concentration_soil_sz_layer = O2.f_concentration_soil()
             NO3.concentration_soil_sz_layer = NO3.f_concentration_soil()
 
+            # See the comments at USZ f_concentration_soil code
             NH4.concentration_soil_sz_before = NH4.concentration_soil_sz[time][sz_layer]
             NH4.concentration_soil_sz_layer = NH4.f_concentration_soil(NH4.concentration_soil_sz_before,
                                                                        SZ.theta[time], NH4.kads2,
@@ -231,23 +232,13 @@ def water_quality_module(WFR, GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
                                                                        DOC.k_mb, SOIL_PLANT.ro, GP.dt)
             DOC.concentration_soil_sz_now.append(DOC.concentration_soil_sz_layer)
 
-            SZ.unit_flux_now = SZ.f_unit_flux(sz_layer, USZ.infiltration_to_sz[time], USZ.capillary_rise[time], USZ.evapotranspiration[time], SZ.pipe_outflow_now,
-                                              SZ.infiltration_to_surround[time], SZ.theta[time], PZ.Ab)
+            SZ.unit_flux_now = SZ.f_unit_flux(time, sz_layer, PZ, USZ)
             SZ.unit_flux.append(SZ.unit_flux_now)
 
-            O2.reaction_rate_sz_now = O2.f_reaction_sz(O2.concentration_sz_layers[sz_layer],
-                                                       NH4.concentration_sz_layers[sz_layer],
-                                                       GP.k_nit) + O2.f_plant_uptake_sz(
-                O2.concentration_sz_layers[sz_layer], SOIL_PLANT.c_o2_root, SZ.theta[time],
-                SOIL_PLANT.root_fraction, SOIL_PLANT.lamda)
-            NH4.reaction_rate_sz_now = NH4.f_reaction_sz() + NH4.f_plant_uptake_sz(
-                NH4.concentration_sz_layers[sz_layer], SZ.theta[time], SOIL_PLANT.root_fraction)
-            NO3.reaction_rate_sz_now = NO3.f_reaction_sz(NO3.concentration_sz_layers[sz_layer],
-                                                         O2.concentration_sz_layers[sz_layer],
-                                                         DOC.concentration_sz_layers[sz_layer],
-                                                         GP.k_denit) + NO3.f_plant_uptake_sz(
-                NO3.concentration_sz_layers[sz_layer], SZ.theta[time], SOIL_PLANT.root_fraction)
-            DOC.reaction_rate_sz_now = DOC.f_reaction_sz(DOC.concentration_sz_layers[sz_layer])
+            O2.reaction_rate_sz_now = O2.f_reaction_sz(sz_layer, GP, NH4) + O2.f_plant_uptake_sz(time, sz_layer, SZ, SOIL_PLANT)
+            NH4.reaction_rate_sz_now = NH4.f_reaction_sz() + NH4.f_plant_uptake_sz(time, sz_layer, SZ, SOIL_PLANT)
+            NO3.reaction_rate_sz_now = NO3.f_reaction_sz(sz_layer, GP, O2, DOC) + NO3.f_plant_uptake_sz(time, sz_layer, SZ, SOIL_PLANT)
+            DOC.reaction_rate_sz_now = DOC.f_reaction_sz(sz_layer)
 
             O2.reaction_rate_sz_layers.append(O2.reaction_rate_sz_now * (1 / SZ.theta_after) * GP.dt)
             NH4.reaction_rate_sz_layers.append(NH4.reaction_rate_sz_now * (1 / SZ.theta_after) * GP.dt)

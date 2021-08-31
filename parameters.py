@@ -341,12 +341,11 @@ class SaturatedZone:
         beta2 = j / (self.m_sz - 1)
         return alfa2, beta2
 
-    def f_unit_flux(self, sz_layer, Qfs, Qhc, Qet_2, Qorif, Qinf_sz, theta_sz_now, Ab):
+    def f_unit_flux(self, time, sz_layer, PZ, USZ):
         alfa = (self.m_sz - 1 - sz_layer) / (self.m_sz - 1)
         beta = sz_layer / (self.m_sz - 1)
-
-        UF_sz = (alfa * (Qfs - Qhc - Qet_2) + beta * (Qorif + Qinf_sz)) / (Ab * theta_sz_now)
-        return UF_sz
+        unit_flux = (alfa * (USZ.infiltration_to_sz[time] - USZ.capillary_rise[time] - USZ.evapotranspiration[time]) + beta * (self.pipe_outflow_now + self.infiltration_to_surround[time])) / (PZ.Ab * self.theta[time])
+        return unit_flux
 
     def f_peclet(self, UF_sz, D, dz):
         if D > 0:
@@ -789,9 +788,9 @@ class Ammonia(Pollutant):
         plant_uptake = -SOIL_PLANT.root_fraction * (self.Fm * USZ.theta[time] * self.concentration_usz_layers[usz_layer] / (self.Km + USZ.theta[time] * self.concentration_usz_layers[usz_layer]))
         return plant_uptake
 
-    def f_plant_uptake_sz(self, C_nh4_3, theta_sz, root_fraction):
-        PU_nh4_3 = -root_fraction * (self.Fm * theta_sz * C_nh4_3 / (self.Km + theta_sz * C_nh4_3))
-        return PU_nh4_3
+    def f_plant_uptake_sz(self, time, sz_layer, SZ, SOIL_PLANT):
+        plant_uptake = -SOIL_PLANT.root_fraction * (self.Fm * SZ.theta[time] * self.concentration_sz_layers[sz_layer] / (self.Km + SZ.theta[time] * self.concentration_sz_layers[sz_layer]))
+        return plant_uptake
 
 
 class Nitrate(Pollutant):
@@ -816,23 +815,23 @@ class Nitrate(Pollutant):
         reaction_rate = GP.k_nit * NH4.concentration_usz_layers[usz_layer]
         return reaction_rate
 
-    def f_reaction_sz(self, C_no3_iminus1, C_o2_i, C_doc_iminus1, k_denit):
-        #     Of = O2.K/(O2.K+C_o2_i)
-        #     bDOCf = (C_doc_iminus1 + DOC.bDOCd*GP.dt)/(C_doc_iminus1 + DOC.bDOCd*GP.dt + DOC.KbDOC)
+    def f_reaction_sz(self, sz_layer, GP, O2, DOC):
+        #     Of = O2.K/(O2.K+O2.concentration_sz_layers[sz_layer])
+        #     bDOCf = (DOC.concentration_sz_layers[sz_layer] + DOC.bDOCd*GP.dt)/(DOC.concentration_sz_layers[sz_layer] + DOC.bDOCd*GP.dt + DOC.KbDOC)
         #
-        #     k2 = GP.k_denit*Of*bDOCf
-        k2 = k_denit  ###testando sem influencia de DOC e O2
-        R_denit = - k2 * C_no3_iminus1
-        return R_denit
+        #     k2 = GP.GP.k_denit*Of*bDOCf
+        
+        k2 = GP.k_denit  # testing without DOC and O2 influence
+        denitrification = - k2 * self.concentration_sz_layers[sz_layer]
+        return denitrification
 
     def f_plant_uptake_usz(self, time, usz_layer, USZ, SOIL_PLANT):
         plant_uptake = -SOIL_PLANT.root_fraction * (self.Fm * USZ.theta[time] * self.concentration_usz_layers[usz_layer] / (self.Km + USZ.theta[time] * self.concentration_usz_layers[usz_layer]))
         return plant_uptake
 
-    def f_plant_uptake_sz(self, C_no3_3, theta_sz, root_fraction):
-        PU_no3_3 = -root_fraction * (self.Fm * theta_sz * C_no3_3 / (self.Km + theta_sz * C_no3_3))
-
-        return PU_no3_3
+    def f_plant_uptake_sz(self, time, sz_layer, SZ, SOIL_PLANT):
+        plant_uptake = -SOIL_PLANT.root_fraction * (self.Fm * SZ.theta[time] * self.concentration_sz_layers[sz_layer] / (self.Km + SZ.theta[time] * self.concentration_sz_layers[sz_layer]))
+        return plant_uptake
 
     def f_concentration_soil(self):
         return 0
@@ -874,18 +873,17 @@ class Oxygen(Pollutant):
         reaction_rate = -self.k * self.concentration_usz_layers[usz_layer] - GP.k_nit * NH4.concentration_usz_layers[usz_layer] / 2
         return reaction_rate
 
-    def f_reaction_sz(self, C_o2_iminus1, C_nh4_iminus1, k_nit):
-        R_o2 = -self.k * C_o2_iminus1 - k_nit * C_nh4_iminus1 / 2
-
-        return R_o2
+    def f_reaction_sz(self, sz_layer, GP, NH4):
+        reaction_rate = -self.k * self.concentration_sz_layers[sz_layer] - GP.k_nit * NH4.concentration_sz_layers[sz_layer] / 2
+        return reaction_rate
 
     def f_plant_uptake_usz(self, time, usz_layer, USZ, SOIL_PLANT):
         plant_uptake = -SOIL_PLANT.root_fraction * (SOIL_PLANT.lamda * (USZ.theta[time] * SOIL_PLANT.c_o2_root - USZ.theta[time] * self.concentration_usz_layers[usz_layer]))
         return plant_uptake
 
-    def f_plant_uptake_sz(self, C_o2_3, C_o2_root, theta_sz, root_fraction, lamda):
-        PU_o2_3 = -root_fraction * (lamda * (theta_sz * C_o2_root - theta_sz * C_o2_3))
-        return PU_o2_3
+    def f_plant_uptake_sz(self, time, sz_layer, SZ, SOIL_PLANT):
+        plant_uptake = -SOIL_PLANT.root_fraction * (SOIL_PLANT.lamda * (SZ.theta[time] * SOIL_PLANT.c_o2_root - SZ.theta[time] * self.concentration_sz_layers[sz_layer]))
+        return plant_uptake
 
     def f_concentration_soil(self):
         return 0
@@ -930,6 +928,6 @@ class DissolvedOrganicCarbon(Pollutant):
         reaction_rate = -self.k * self.concentration_usz_layers[usz_layer] + self.bDOCd
         return reaction_rate
 
-    def f_reaction_sz(self, C_doc_iminus1):
-        R_doc = -self.k * C_doc_iminus1 + self.bDOCd
+    def f_reaction_sz(self, sz_layer):
+        R_doc = -self.k * self.concentration_sz_layers[sz_layer] + self.bDOCd
         return R_doc
