@@ -157,9 +157,7 @@ def water_quality_module(WFR, GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
                                                                             DOC.kdes, DOC.k_mb, SOIL_PLANT.ro, GP.dt)
                 DOC.concentration_soil_usz_now.append(DOC.concentration_soil_usz_layer)
 
-                USZ.unit_flux_now = USZ.f_unit_flux(usz_layer, PZ.infiltration_to_filter_material[time], PZ.evapotranspiration[time], USZ.infiltration_to_sz[time],
-                                                    USZ.capillary_rise[time], SZ.pipe_outflow_now, SZ.infiltration_to_surround[time], USZ.theta[time],
-                                                    GP.hpipe, PZ.Ab)
+                USZ.unit_flux_now = USZ.f_unit_flux(time, usz_layer, GP, PZ, SZ)
                 USZ.unit_flux.append(USZ.unit_flux_now)
 
                 O2.reaction_rate_usz_now = O2.f_reaction_usz(O2.concentration_usz_layers[usz_layer],

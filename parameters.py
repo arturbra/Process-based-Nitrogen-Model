@@ -257,17 +257,17 @@ class UnsaturatedZone:
         beta = l / (self.m_usz - 1)
         return alfa, beta
 
-    def f_unit_flux(self, usz_layer, Qpf, Qet_1, Qfs, Qhc, Qorif, Qinf_sz, theta_usz_now, hpipe, Ab):
+    def f_unit_flux(self, time, usz_layer, GP, PZ, SZ):
         alfa = (self.m_usz - 1 - usz_layer) / (self.m_usz - 1)
         beta = usz_layer / (self.m_usz - 1)
 
-        if hpipe > 0:
-            UF_usz = (alfa * (Qpf - Qet_1) + beta * (Qfs - Qhc)) / (Ab * theta_usz_now)
+        if GP.hpipe > 0:
+            unit_flux = (alfa * (PZ.infiltration_to_filter_material[time] - PZ.evapotranspiration[time]) + beta * (self.infiltration_to_sz[time] - self.capillary_rise[time])) / (PZ.Ab * self.theta[time])
 
         else:
-            UF_usz = (alfa * (Qpf - Qet_1) + beta * (Qorif + Qinf_sz - Qhc)) / (Ab * theta_usz_now)
+            unit_flux = (alfa * (PZ.infiltration_to_filter_material[time] - PZ.evapotranspiration[time]) + beta * (SZ.pipe_outflow_now + SZ.infiltration_to_surround[time] - self.capillary_rise[time])) / (PZ.Ab * self.theta[time])
 
-        return UF_usz
+        return unit_flux
 
     def f_peclet(self, unit_flux_usz, D, dz):
         if D > 0:
