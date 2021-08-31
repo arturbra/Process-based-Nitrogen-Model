@@ -472,6 +472,10 @@ class Pollutant:
             cs = 0
         return cs
 
+    def f_reaction_conversion(self, GP, USZ):
+        reaction_converted = self.reaction_rate_usz_now * (1 / USZ.theta_after) * GP.dt
+        return reaction_converted
+
     def f_delta_concentration_layer_usz(self, usz_layer, dz, m_usz):
         if self.peclet <= 2:
             if usz_layer == 0:  # first cell
@@ -776,16 +780,16 @@ class Ammonia(Pollutant):
     def f_reaction_pz(self):
         return 0
 
-    def f_reaction_usz(self, C_nh4_iminus1, k_nit):
-        R_nit = -k_nit * C_nh4_iminus1
-        return R_nit
+    def f_reaction_usz(self, usz_layer, GP):
+        reaction_rate = -GP.k_nit * self.concentration_usz_layers[usz_layer]
+        return reaction_rate
 
     def f_reaction_sz(self):
         return 0
 
-    def f_plant_uptake_usz(self, C_nh4_2, theta_usz, root_fraction):
-        PU_nh4_2 = -root_fraction * (self.Fm * theta_usz * C_nh4_2 / (self.Km + theta_usz * C_nh4_2))
-        return PU_nh4_2
+    def f_plant_uptake_usz(self, time, usz_layer, USZ, SOIL_PLANT):
+        plant_uptake = -SOIL_PLANT.root_fraction * (self.Fm * USZ.theta[time] * self.concentration_usz_layers[usz_layer] / (self.Km + USZ.theta[time] * self.concentration_usz_layers[usz_layer]))
+        return plant_uptake
 
     def f_plant_uptake_sz(self, C_nh4_3, theta_sz, root_fraction):
         PU_nh4_3 = -root_fraction * (self.Fm * theta_sz * C_nh4_3 / (self.Km + theta_sz * C_nh4_3))
@@ -810,9 +814,9 @@ class Nitrate(Pollutant):
     def f_reaction_pz(self):
         return 0
 
-    def f_reaction_usz(self, C_nh4_iminus1, k_nit):
-        R_nit = k_nit * C_nh4_iminus1
-        return R_nit
+    def f_reaction_usz(self, usz_layer, GP, NH4):
+        reaction_rate = GP.k_nit * NH4.concentration_usz_layers[usz_layer]
+        return reaction_rate
 
     def f_reaction_sz(self, C_no3_iminus1, C_o2_i, C_doc_iminus1, k_denit):
         #     Of = O2.K/(O2.K+C_o2_i)
@@ -823,10 +827,9 @@ class Nitrate(Pollutant):
         R_denit = - k2 * C_no3_iminus1
         return R_denit
 
-    def f_plant_uptake_usz(self, C_no3_2, theta_usz, root_fraction):
-        PU_no3_2 = -root_fraction * (self.Fm * theta_usz * C_no3_2 / (self.Km + theta_usz * C_no3_2))
-
-        return PU_no3_2
+    def f_plant_uptake_usz(self, time, usz_layer, USZ, SOIL_PLANT):
+        plant_uptake = -SOIL_PLANT.root_fraction * (self.Fm * USZ.theta[time] * self.concentration_usz_layers[usz_layer] / (self.Km + USZ.theta[time] * self.concentration_usz_layers[usz_layer]))
+        return plant_uptake
 
     def f_plant_uptake_sz(self, C_no3_3, theta_sz, root_fraction):
         PU_no3_3 = -root_fraction * (self.Fm * theta_sz * C_no3_3 / (self.Km + theta_sz * C_no3_3))
@@ -869,18 +872,18 @@ class Oxygen(Pollutant):
     def f_reaction_pz(self):
         return 0
 
-    def f_reaction_usz(self, C_o2_iminus1, C_nh4_iminus1, k_nit):
-        R_o2 = -self.k * C_o2_iminus1 - k_nit * C_nh4_iminus1 / 2
-        return R_o2
+    def f_reaction_usz(self, usz_layer, GP, NH4):
+        reaction_rate = -self.k * self.concentration_usz_layers[usz_layer] - GP.k_nit * NH4.concentration_usz_layers[usz_layer] / 2
+        return reaction_rate
 
     def f_reaction_sz(self, C_o2_iminus1, C_nh4_iminus1, k_nit):
         R_o2 = -self.k * C_o2_iminus1 - k_nit * C_nh4_iminus1 / 2
 
         return R_o2
 
-    def f_plant_uptake_usz(self, C_o2_2, C_o2_root, theta_usz, root_fraction, lamda):
-        PU_o2_2 = -root_fraction * (lamda * (theta_usz * C_o2_root - theta_usz * C_o2_2))
-        return PU_o2_2
+    def f_plant_uptake_usz(self, time, usz_layer, USZ, SOIL_PLANT):
+        plant_uptake = -SOIL_PLANT.root_fraction * (SOIL_PLANT.lamda * (USZ.theta[time] * SOIL_PLANT.c_o2_root - USZ.theta[time] * self.concentration_usz_layers[usz_layer]))
+        return plant_uptake
 
     def f_plant_uptake_sz(self, C_o2_3, C_o2_root, theta_sz, root_fraction, lamda):
         PU_o2_3 = -root_fraction * (lamda * (theta_sz * C_o2_root - theta_sz * C_o2_3))
@@ -925,9 +928,9 @@ class DissolvedOrganicCarbon(Pollutant):
     def f_reaction_pz(self):
         return 0
 
-    def f_reaction_usz(self, C_doc_iminus1):
-        R_doc = -self.k * C_doc_iminus1 + self.bDOCd
-        return R_doc
+    def f_reaction_usz(self, usz_layer):
+        reaction_rate = -self.k * self.concentration_usz_layers[usz_layer] + self.bDOCd
+        return reaction_rate
 
     def f_reaction_sz(self, C_doc_iminus1):
         R_doc = -self.k * C_doc_iminus1 + self.bDOCd

@@ -160,23 +160,15 @@ def water_quality_module(WFR, GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
                 USZ.unit_flux_now = USZ.f_unit_flux(time, usz_layer, GP, PZ, SZ)
                 USZ.unit_flux.append(USZ.unit_flux_now)
 
-                O2.reaction_rate_usz_now = O2.f_reaction_usz(O2.concentration_usz_layers[usz_layer],
-                                                             NH4.concentration_usz_layers[usz_layer],
-                                                             GP.k_nit) + O2.f_plant_uptake_usz(
-                    O2.concentration_usz_layers[usz_layer], SOIL_PLANT.c_o2_root, USZ.theta[time],
-                    SOIL_PLANT.root_fraction, SOIL_PLANT.lamda)
-                NH4.reaction_rate_usz_now = NH4.f_reaction_usz(NH4.concentration_usz_layers[usz_layer],
-                                                               GP.k_nit) + NH4.f_plant_uptake_usz(
-                    NH4.concentration_usz_layers[usz_layer], USZ.theta[time], SOIL_PLANT.root_fraction)
-                NO3.reaction_rate_usz_now = NO3.f_reaction_usz(NH4.concentration_usz_layers[usz_layer],
-                                                               GP.k_nit) + NO3.f_plant_uptake_usz(
-                    NO3.concentration_usz_layers[usz_layer], USZ.theta[time], SOIL_PLANT.root_fraction)
-                DOC.reaction_rate_usz_now = DOC.f_reaction_usz(DOC.concentration_usz_layers[usz_layer])
+                O2.reaction_rate_usz_now = O2.f_reaction_usz(usz_layer, GP, NH4) + O2.f_plant_uptake_usz(time, usz_layer, USZ, SOIL_PLANT)
+                NH4.reaction_rate_usz_now = NH4.f_reaction_usz(usz_layer, GP) + NH4.f_plant_uptake_usz(time, usz_layer, USZ, SOIL_PLANT)
+                NO3.reaction_rate_usz_now = NO3.f_reaction_usz(usz_layer, GP, NH4) + NO3.f_plant_uptake_usz(time, usz_layer, USZ, SOIL_PLANT)
+                DOC.reaction_rate_usz_now = DOC.f_reaction_usz(usz_layer)
 
-                O2.reaction_rate_usz_layers.append(O2.reaction_rate_usz_now * (1 / USZ.theta_after) * GP.dt)
-                NH4.reaction_rate_usz_layers.append(NH4.reaction_rate_usz_now * (1 / USZ.theta_after) * GP.dt)
-                NO3.reaction_rate_usz_layers.append(NO3.reaction_rate_usz_now * (1 / USZ.theta_after) * GP.dt)
-                DOC.reaction_rate_usz_layers.append(DOC.reaction_rate_usz_now * (1 / USZ.theta_after) * GP.dt)
+                O2.reaction_rate_usz_layers.append(O2.f_reaction_conversion(GP, USZ))
+                NH4.reaction_rate_usz_layers.append(NH4.f_reaction_conversion(GP, USZ))
+                NO3.reaction_rate_usz_layers.append(NO3.f_reaction_conversion(GP, USZ))
+                DOC.reaction_rate_usz_layers.append(DOC.f_reaction_conversion(GP, USZ))
 
                 O2.peclet = USZ.f_peclet(USZ.unit_flux_now, O2.D, GP.dz)
                 O2.delta_concentration = O2.f_delta_concentration_usz(time, usz_layer, USZ.m_usz, USZ.theta,
