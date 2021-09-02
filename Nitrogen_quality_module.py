@@ -54,8 +54,8 @@ def water_flow_module(GP, USZ, PZ, SZ):
 
 
 # **4. Model routine**
-def water_quality_module(WFR, GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
-    for time in range(len(WFR.indice) - 1):
+def water_quality_module(GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
+    for time in range(len(GP.rain_inflow) - 1):
         # PZ
         PZ.height_now = PZ.height_after[time]
         if PZ.height_now < 0.001:
@@ -65,7 +65,7 @@ def water_quality_module(WFR, GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
             PZ.height_before = PZ.height_after[time - 1]
             SZ.pipe_outflow_now = SZ.pipe_outflow[time]
 
-        if time < (len(WFR.indice) - 1):
+        if time < (len(GP.rain_inflow) - 1):
             USZ.theta_after = USZ.theta[time + 1]
             SZ.theta_after = SZ.theta[time + 1]
         else:
@@ -160,15 +160,21 @@ def water_quality_module(WFR, GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
                 USZ.unit_flux_now = USZ.f_unit_flux(time, usz_layer, GP, PZ, SZ)
                 USZ.unit_flux.append(USZ.unit_flux_now)
 
-                O2.reaction_rate_usz_now = O2.f_reaction_usz(usz_layer, GP, NH4) + O2.f_plant_uptake_usz(time, usz_layer, USZ, SOIL_PLANT)
-                NH4.reaction_rate_usz_now = NH4.f_reaction_usz(usz_layer, GP) + NH4.f_plant_uptake_usz(time, usz_layer, USZ, SOIL_PLANT)
-                NO3.reaction_rate_usz_now = NO3.f_reaction_usz(usz_layer, GP, NH4) + NO3.f_plant_uptake_usz(time, usz_layer, USZ, SOIL_PLANT)
+                O2.reaction_rate_usz_now = O2.f_reaction_usz(usz_layer, GP, NH4) + O2.f_plant_uptake_usz(time,
+                                                                                                         usz_layer, USZ,
+                                                                                                         SOIL_PLANT)
+                NH4.reaction_rate_usz_now = NH4.f_reaction_usz(usz_layer, GP) + NH4.f_plant_uptake_usz(time, usz_layer,
+                                                                                                       USZ, SOIL_PLANT)
+                NO3.reaction_rate_usz_now = NO3.f_reaction_usz(usz_layer, GP, NH4) + NO3.f_plant_uptake_usz(time,
+                                                                                                            usz_layer,
+                                                                                                            USZ,
+                                                                                                            SOIL_PLANT)
                 DOC.reaction_rate_usz_now = DOC.f_reaction_usz(usz_layer)
 
-                O2.reaction_rate_usz_layers.append(O2.f_reaction_conversion(GP, USZ))
-                NH4.reaction_rate_usz_layers.append(NH4.f_reaction_conversion(GP, USZ))
-                NO3.reaction_rate_usz_layers.append(NO3.f_reaction_conversion(GP, USZ))
-                DOC.reaction_rate_usz_layers.append(DOC.f_reaction_conversion(GP, USZ))
+                O2.reaction_rate_usz_layers.append(O2.f_reaction_conversion_usz(GP, USZ))
+                NH4.reaction_rate_usz_layers.append(NH4.f_reaction_conversion_usz(GP, USZ))
+                NO3.reaction_rate_usz_layers.append(NO3.f_reaction_conversion_usz(GP, USZ))
+                DOC.reaction_rate_usz_layers.append(DOC.f_reaction_conversion_usz(GP, USZ))
 
                 O2.peclet = USZ.f_peclet(GP, O2)
                 O2.delta_concentration = O2.f_delta_concentration_usz(time, usz_layer, GP, USZ, SOIL_PLANT)
@@ -235,64 +241,54 @@ def water_quality_module(WFR, GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
             SZ.unit_flux_now = SZ.f_unit_flux(time, sz_layer, PZ, USZ)
             SZ.unit_flux.append(SZ.unit_flux_now)
 
-            O2.reaction_rate_sz_now = O2.f_reaction_sz(sz_layer, GP, NH4) + O2.f_plant_uptake_sz(time, sz_layer, SZ, SOIL_PLANT)
+            O2.reaction_rate_sz_now = O2.f_reaction_sz(sz_layer, GP, NH4) + O2.f_plant_uptake_sz(time, sz_layer, SZ,
+                                                                                                 SOIL_PLANT)
             NH4.reaction_rate_sz_now = NH4.f_reaction_sz() + NH4.f_plant_uptake_sz(time, sz_layer, SZ, SOIL_PLANT)
-            NO3.reaction_rate_sz_now = NO3.f_reaction_sz(sz_layer, GP, O2, DOC) + NO3.f_plant_uptake_sz(time, sz_layer, SZ, SOIL_PLANT)
+            NO3.reaction_rate_sz_now = NO3.f_reaction_sz(sz_layer, GP, O2, DOC) + NO3.f_plant_uptake_sz(time, sz_layer,
+                                                                                                        SZ, SOIL_PLANT)
             DOC.reaction_rate_sz_now = DOC.f_reaction_sz(sz_layer)
 
-            O2.reaction_rate_sz_layers.append(O2.reaction_rate_sz_now * (1 / SZ.theta_after) * GP.dt)
-            NH4.reaction_rate_sz_layers.append(NH4.reaction_rate_sz_now * (1 / SZ.theta_after) * GP.dt)
-            NO3.reaction_rate_sz_layers.append(NO3.reaction_rate_sz_now * (1 / SZ.theta_after) * GP.dt)
-            DOC.reaction_rate_sz_layers.append(DOC.reaction_rate_sz_now * (1 / SZ.theta_after) * GP.dt)
+            O2.reaction_rate_sz_layers.append(O2.f_reaction_conversion_sz(GP, SZ))
+            NH4.reaction_rate_sz_layers.append(NH4.f_reaction_conversion_sz(GP, SZ))
+            NO3.reaction_rate_sz_layers.append(NO3.f_reaction_conversion_sz(GP, SZ))
+            DOC.reaction_rate_sz_layers.append(DOC.f_reaction_conversion_sz(GP, SZ))
 
-            ### Oxygen
-            O2.peclet = SZ.f_peclet(SZ.unit_flux_now, O2.D, GP.dz)
-            O2.delta_concentration = O2.f_delta_concentration_sz(time, sz_layer, USZ.m_usz, SZ.m_sz, SZ.theta,
-                                                                 SZ.theta_after, SZ.unit_flux_now, SOIL_PLANT.ro,
-                                                                 SOIL_PLANT.f, GP.dt, GP.dz, GP.n)
+            # Oxygen
+            O2.peclet = SZ.f_peclet(GP, O2)
+            O2.delta_concentration = O2.f_delta_concentration_sz(time, sz_layer, GP, USZ, SZ, SOIL_PLANT)
             O2.concentration_sz_layers_now.append(O2.delta_concentration)
 
-            ### Amonia
-            NH4.peclet = SZ.f_peclet(SZ.unit_flux_now, NH4.D, GP.dz)
-            NH4.delta_concentration = NH4.f_delta_concentration_sz(time, sz_layer, USZ.m_usz, SZ.m_sz, SZ.theta,
-                                                                   SZ.theta_after, SZ.unit_flux_now, SOIL_PLANT.ro,
-                                                                   SOIL_PLANT.f, GP.dt, GP.dz, GP.n)
+            # Ammonia
+            NH4.peclet = SZ.f_peclet(GP, NH4)
+            NH4.delta_concentration = NH4.f_delta_concentration_sz(time, sz_layer, GP, USZ, SZ, SOIL_PLANT)
             NH4.concentration_sz_layers_now.append(NH4.delta_concentration)
 
-            ### Nitrate
-            NO3.peclet = SZ.f_peclet(SZ.unit_flux_now, NO3.D, GP.dz)
-            NO3.delta_concentration = NO3.f_delta_concentration_sz(time, sz_layer, USZ.m_usz, SZ.m_sz, SZ.theta,
-                                                                   SZ.theta_after, SZ.unit_flux_now, SOIL_PLANT.ro,
-                                                                   SOIL_PLANT.f, GP.dt, GP.dz, GP.n)
+            # Nitrate
+            NO3.peclet = SZ.f_peclet(GP, NO3)
+            NO3.delta_concentration = NO3.f_delta_concentration_sz(time, sz_layer, GP, USZ, SZ, SOIL_PLANT)
             NO3.concentration_sz_layers_now.append(NO3.delta_concentration)
 
-            ### DOC
-            DOC.peclet = SZ.f_peclet(SZ.unit_flux_now, DOC.D, GP.dz)
-            DOC.delta_concentration = DOC.f_delta_concentration_sz(time, sz_layer, USZ.m_usz, SZ.m_sz, SZ.theta,
-                                                                   SZ.theta_after, SZ.unit_flux_now, SOIL_PLANT.ro,
-                                                                   SOIL_PLANT.f, GP.dt, GP.dz, GP.n)
+            # DOC
+            DOC.peclet = SZ.f_peclet(GP, DOC)
+            DOC.delta_concentration = DOC.f_delta_concentration_sz(time, sz_layer, GP, USZ, SZ, SOIL_PLANT)
             DOC.concentration_sz_layers_now.append(DOC.delta_concentration)
 
         # Corrective step
-        O2.mass_balance.append(O2.f_mass_balance_stormwater(time, USZ, SZ, WFR, PZ, GP))
-        O2.mass_stormwater_now = O2.f_mass_stormwater(time, USZ.m_usz, SZ.m_sz, PZ.Ab, USZ.theta, USZ.height,
-                                                      SZ.theta, SZ.height, GP.hpipe)
-        O2.f_mass_balance_concentration(time, USZ.m_usz, PZ.Ab, USZ.theta, USZ.height)
+        O2.mass_balance.append(O2.f_mass_balance_stormwater(time, USZ, SZ, PZ, GP))
+        O2.mass_stormwater_now = O2.f_mass_stormwater(time, GP, PZ, USZ, SZ)
+        O2.f_mass_balance_concentration(time, PZ, USZ)
 
-        NH4.mass_balance.append(NH4.f_mass_balance_stormwater(time, USZ, SZ, WFR, PZ, GP, SOIL_PLANT))
-        NH4.mass_stormwater_now = NH4.f_mass_stormwater(time, USZ.m_usz, SZ.m_sz, PZ.Ab, USZ.theta, USZ.height,
-                                                        SZ.theta, SZ.height, GP.hpipe)
-        NH4.f_mass_balance_concentration(time, USZ.m_usz, PZ.Ab, USZ.theta, USZ.height)
+        NH4.mass_balance.append(NH4.f_mass_balance_stormwater(time, USZ, SZ, PZ, GP, SOIL_PLANT))
+        NH4.mass_stormwater_now = NH4.f_mass_stormwater(time, GP, PZ, USZ, SZ)
+        NH4.f_mass_balance_concentration(time, PZ, USZ)
 
-        NO3.mass_balance.append(NO3.f_mass_balance_stormwater(time, USZ, SZ, WFR, PZ, GP))
-        NO3.mass_stormwater_now = NO3.f_mass_stormwater(time, USZ.m_usz, SZ.m_sz, PZ.Ab, USZ.theta, USZ.height,
-                                                        SZ.theta, SZ.height, GP.hpipe)
-        NO3.f_mass_balance_concentration(time, USZ.m_usz, PZ.Ab, USZ.theta, USZ.height)
+        NO3.mass_balance.append(NO3.f_mass_balance_stormwater(time, USZ, SZ, PZ, GP))
+        NO3.mass_stormwater_now = NO3.f_mass_stormwater(time, GP, PZ, USZ, SZ)
+        NO3.f_mass_balance_concentration(time, PZ, USZ)
 
-        DOC.mass_balance.append(DOC.f_mass_balance_stormwater(time, USZ, SZ, WFR, PZ, GP, SOIL_PLANT))
-        DOC.mass_stormwater_now = DOC.f_mass_stormwater(time, USZ.m_usz, SZ.m_sz, PZ.Ab, USZ.theta, USZ.height,
-                                                        SZ.theta, SZ.height, GP.hpipe)
-        DOC.f_mass_balance_concentration(time, USZ.m_usz, PZ.Ab, USZ.theta, USZ.height)
+        DOC.mass_balance.append(DOC.f_mass_balance_stormwater(time, USZ, SZ, PZ, GP, SOIL_PLANT))
+        DOC.mass_stormwater_now = DOC.f_mass_stormwater(time, GP, PZ, USZ, SZ)
+        DOC.f_mass_balance_concentration(time, PZ, USZ)
 
         # adding layers of USZ in time
         O2.concentration_usz.append(O2.concentration_usz_layers_now)
@@ -309,7 +305,7 @@ def water_quality_module(WFR, GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
         DOC.concentration_soil_usz.append(DOC.concentration_soil_usz_now)
         DOC.reaction_rate_usz.append(DOC.reaction_rate_usz_layers)
 
-        ## adding layers of SZ in time
+        # adding layers of SZ in time
         if GP.hpipe > 0:
             O2.concentration_sz.append(O2.concentration_sz_layers_now)
             O2.reaction_rate_sz.append(O2.reaction_rate_sz_layers)
@@ -326,11 +322,11 @@ def water_quality_module(WFR, GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
             DOC.reaction_rate_sz.append(DOC.reaction_rate_sz_layers)
 
     # **5. Transforming in dataframe **
-    ## Oxygen
-    data_o2 = O2.water_quality_results(USZ.m_usz, SZ.m_sz)
-    data_nh4 = NH4.water_quality_results(USZ.m_usz, SZ.m_sz)
-    data_no3 = NO3.water_quality_results(USZ.m_usz, SZ.m_sz)
-    data_doc = DOC.water_quality_results(USZ.m_usz, SZ.m_sz)
+    # Oxygen
+    data_o2 = O2.water_quality_results(USZ, SZ)
+    data_nh4 = NH4.water_quality_results(USZ, SZ)
+    data_no3 = NO3.water_quality_results(USZ, SZ)
+    data_doc = DOC.water_quality_results(USZ, SZ)
 
     return data_o2, data_nh4, data_no3, data_doc
 
@@ -340,7 +336,6 @@ def run(interaction):
     WATER_FLOW_INPUT_FILE = "water_inflow.csv"
     WATER_QUALITY_INPUT_FILE = "concentration_inflow.csv"
     GP = parameters.GeneralParameters(SETUP_FILE, WATER_FLOW_INPUT_FILE)
-    WFR = parameters.WaterFlowResults(GP.rain_inflow, GP.inflow, GP.evapotranspiration_max)
     GP.hpipe = hpipes[interaction]
     USZ = parameters.UnsaturatedZone(SETUP_FILE, GP.L, GP.hpipe, GP.dz)
     PZ = parameters.PondingZone(SETUP_FILE)
@@ -351,10 +346,8 @@ def run(interaction):
     O2 = parameters.Oxygen(USZ.m_usz, SZ.m_sz, SETUP_FILE, WATER_QUALITY_INPUT_FILE)
     DOC = parameters.DissolvedOrganicCarbon(USZ.m_usz, SZ.m_sz, SETUP_FILE, WATER_QUALITY_INPUT_FILE)
     water_flow_module(GP, USZ, PZ, SZ)
-    # WFR.water_balance(GP.dt)
     print("hpipe:", GP.hpipe)
-    data_o2, data_nh4, data_no3, data_doc = water_quality_module(WFR, GP, USZ, PZ,
-                                                                 SZ, SOIL_PLANT, NH4, NO3, O2, DOC)
+    data_o2, data_nh4, data_no3, data_doc = water_quality_module(GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC)
 
     wf_path = results_paths[interaction] + "water_flow_results.csv"
     nh4_path = results_paths[interaction] + "results_Kin_pf_nh4_2.csv"
@@ -380,7 +373,7 @@ if __name__ == '__main__':
     results_paths = ["results/results_00/", "results/results_10/",
                      "results/results_20/", "results/results_30/",
                      "results/results_40/"]
-    inicio = datetime.datetime.now()
+    start = datetime.datetime.now()
 
     for test in range(len(hpipes)):
         run(test)
@@ -390,9 +383,6 @@ if __name__ == '__main__':
     # data_no3.to_csv('results_Kin_pf_no3.csv', index = False)
     # data_doc.to_csv('results_Kin_pf_doc.csv', index = False)
 
-    fim = datetime.datetime.now()
-    print('Elapsed time: ', fim - inicio)
+    end = datetime.datetime.now()
+    print('Elapsed time: ', end - start)
     print('Done!')
-
-
-

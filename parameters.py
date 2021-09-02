@@ -3,62 +3,6 @@ from math import pi
 import pandas as pd
 
 
-class WaterFlowResults:
-    def __init__(self, tQrain, tQin, tEmax):
-        self.indice = list(range(0, len(tQrain)))
-        self.tt = []
-        self.tQover = []
-        self.tQpf = []
-        self.tQinfp = []
-        self.tQfs = []
-        self.tQhc = []
-        self.tQet = []
-        self.tQinfsz = []
-        self.tQpipe = []
-        self.tQet1 = []
-        self.tQet2 = []
-        self.thp = []
-        self.ts = []
-        self.thusz = []
-        self.thsz = []
-        self.thszEST = []
-        self.tnsz = []
-        self.tnusz = []
-        self.thpEND = []
-        self.tteta_usz = []
-        self.tteta_sz = []
-        self.tQin = tQin
-        self.tQrain = tQrain
-        self.tEmax = tEmax
-        self.indice = list(range(0, len(self.tQrain)))
-
-    def water_balance(self, dt):
-        Qin_total = self.tQin.sum()
-        Qover_total = pd.array(self.tQover).sum()
-        Qpipe_total = pd.array(self.tQpipe).sum()
-        Qpeak_over = pd.array(self.tQover).max()
-        Qpf_total = pd.array(self.tQpf).sum()
-        Qfs_total = pd.array(self.tQfs).sum()
-
-        Vtotal_in = Qin_total * dt
-        Vtotal_over = Qover_total * dt
-        Vtotal_pipe = Qpipe_total * dt
-        Vtotal_pf = Qpf_total * dt
-        Vtotal_fs = Qfs_total * dt
-
-        Smax = pd.array(self.ts).max()
-        hmax = pd.array(self.thp).max()
-
-        print('Vtotal_in :', Vtotal_in)  # m3
-        print('Vtotal_over :', Vtotal_over)  # m3
-        print('Vtotal_pipe (m3):', Vtotal_pipe)  # m3
-        print('Vtotal_pf :', Vtotal_pf)  # m3
-        print('Vtotal_fs :', Vtotal_fs)  # m3
-        print('Qpeak_over :', Qpeak_over * 1000)  # L/s
-        print('Smax :', Smax)  # m3
-        print('hmax :', hmax)  # m
-
-
 class GeneralParameters:
     def __init__(self, setup_file, input_file):
         setup = configparser.ConfigParser()
@@ -86,7 +30,6 @@ class GeneralParameters:
         self.dpipe = float(setup['SATURATED_ZONE']['dpipe'])
         self.Cd = float(setup['SATURATED_ZONE']['Cd'])
         self.Apipe = pi * (self.dpipe / (1000 * 2)) ** 2
-
         csv_file = pd.read_csv(input_file, sep=";")
         self.inflow = csv_file["Qin"]
         self.evapotranspiration_max = csv_file["ET"]
@@ -186,7 +129,6 @@ class UnsaturatedZone:
         self.Kf = float(setup['UNSATURATED_ZONE']['Kf'])
         self.m_usz = round((L - hpipe) / dz)
         self.unit_flux = []
-
         self.height = []
         self.height_now = self.husz_ini
         self.height_before = self.husz_ini
@@ -347,13 +289,13 @@ class SaturatedZone:
         unit_flux = (alfa * (USZ.infiltration_to_sz[time] - USZ.capillary_rise[time] - USZ.evapotranspiration[time]) + beta * (self.pipe_outflow_now + self.infiltration_to_surround[time])) / (PZ.Ab * self.theta[time])
         return unit_flux
 
-    def f_peclet(self, UF_sz, D, dz):
-        if D > 0:
-            Pesz = UF_sz * dz / D
+    def f_peclet(self, GP, pollutant):
+        if pollutant.D > 0:
+            peclet = self.unit_flux_now * GP.dz / pollutant.D
         else:
-            Pesz = 100
+            peclet = 100
 
-        return Pesz
+        return peclet
 
 
 class Calibration:
@@ -471,8 +413,12 @@ class Pollutant:
             cs = 0
         return cs
 
-    def f_reaction_conversion(self, GP, USZ):
+    def f_reaction_conversion_usz(self, GP, USZ):
         reaction_converted = self.reaction_rate_usz_now * (1 / USZ.theta_after) * GP.dt
+        return reaction_converted
+
+    def f_reaction_conversion_sz(self, GP, SZ):
+        reaction_converted = self.reaction_rate_sz_now * (1 / SZ.theta_after) * GP.dt
         return reaction_converted
 
     def f_delta_concentration_layer_usz(self, usz_layer, dz, m_usz):
@@ -616,13 +562,13 @@ class Pollutant:
             concentration_now = 0
         return concentration_now
 
-    def f_delta_concentration_sz(self, time, sz_layer, m_usz, m_sz, tteta_sz, theta_sz_after, unit_flux_now, ro, f, dt, dz, n, threshold=0.0000000000000001):
-        dc, dc_dz = self.f_delta_concentration_layer_sz(sz_layer, dz, m_usz, m_sz, n)
-        delta_c_doc = self.f_transport(tteta_sz[time], theta_sz_after, self.concentration_sz_layers[sz_layer],
+    def f_delta_concentration_sz(self, time, sz_layer, GP, USZ, SZ, SOIL_PLANT, threshold=0.0000000000000001):
+        dc, dc_dz = self.f_delta_concentration_layer_sz(sz_layer, GP.dz, USZ.m_usz, SZ.m_sz, GP.n)
+        delta_c_doc = self.f_transport(SZ.theta[time], SZ.theta_after, self.concentration_sz_layers[sz_layer],
                                       self.concentration_soil_sz_layer, dc, dc_dz, self.kads2, self.kdes2,
-                                      self.D, unit_flux_now, self.reaction_rate_sz_now, ro, f,
-                                      dt, dz)
-        if theta_sz_after > 0:
+                                      self.D, SZ.unit_flux_now, self.reaction_rate_sz_now, SOIL_PLANT.ro, SOIL_PLANT.f,
+                                      GP.dt, GP.dz)
+        if SZ.theta_after > 0:
             concentration = self.concentration_sz_layers[sz_layer] + delta_c_doc
         else:
             concentration = 0
@@ -631,10 +577,10 @@ class Pollutant:
             concentration = 0
         return concentration
 
-    def f_mass_stormwater(self, time, m_usz, m_sz, Ab, tteta_usz, thusz, tteta_sz, thsz, hpipe):
-        mass_stormwater_usz = sum(self.concentration_usz[time]) * Ab * tteta_usz[time] * thusz[time] * 1000 / m_usz
-        if hpipe > 0:
-            mass_stormwater_sz = sum(self.concentration_sz[time]) * Ab * tteta_sz[time] * thsz[time] * 1000 / m_sz
+    def f_mass_stormwater(self, time, GP, PZ, USZ, SZ):
+        mass_stormwater_usz = sum(self.concentration_usz[time]) * PZ.Ab * USZ.theta[time] * USZ.height[time] * 1000 / USZ.m_usz
+        if GP.hpipe > 0:
+            mass_stormwater_sz = sum(self.concentration_sz[time]) * PZ.Ab * SZ.theta[time] * SZ.height[time] * 1000 / SZ.m_sz
         else:
             mass_stormwater_sz = 0
         mass_stormwater = mass_stormwater_usz + mass_stormwater_sz
@@ -715,7 +661,7 @@ class Pollutant:
         mass_pz = thpEND[time] * Ab * 1000 * self.concentration_pz[time]
         return mass_pz
     
-    def f_mass_balance_stormwater(self, time, USZ, SZ, WFR, PZ, GP, SOIL_PLANT):
+    def f_mass_balance_stormwater(self, time, USZ, SZ, PZ, GP, SOIL_PLANT):
         self.mass_soil.append(self.f_mass_soil(time, USZ.m_usz, SZ.m_sz, USZ.height, SZ.height, PZ.Ab, SOIL_PLANT.ro, GP.hpipe))
         self.mass_accumulated_reaction.append(self.f_mass_reaction_rate(time, USZ.m_usz, SZ.m_sz, USZ.theta, SZ.theta, USZ.height, SZ.height, PZ.Ab, GP.hpipe))
         self.mass_accumulated_inflow.append(self.f_mass_inflow(time, GP.inflow, GP.dt))
@@ -727,21 +673,21 @@ class Pollutant:
         mass_balance_stormwater = self.mass_accumulated_inflow[-1] - self.mass_pz[-1] - self.mass_accumulated_overflow[-1] - self.mass_accumulated_pipe_outflow[-1] - self.mass_accumulated_infiltrated_to_sz[-1] - self.mass_accumulated_evapotranspiration[-1] - self.mass_soil[-1] - self.mass_accumulated_reaction[-1]
         return mass_balance_stormwater
 
-    def f_mass_balance_concentration(self, time, m_usz, Ab, tteta_usz, thusz):
-        concentration_delta = (self.mass_balance[-1] - self.mass_stormwater_now) / (Ab * tteta_usz[time] * thusz[time] * 1000 / m_usz)
+    def f_mass_balance_concentration(self, time, PZ, USZ):
+        concentration_delta = (self.mass_balance[-1] - self.mass_stormwater_now) / (PZ.Ab * USZ.theta[time] * USZ.height[time] * 1000 / USZ.m_usz)
         self.concentration_usz_layers_now[1] = self.concentration_usz_layers_now[1] + concentration_delta
         if self.concentration_usz_layers_now[1] < 0:
             self.concentration_usz_layers_now[1] = 0
 
-    def water_quality_results(self, m_usz, m_sz):
-        columns_name = ["usz" + str(num) for num in range(m_usz)]
-        columns_name += ["sz" + str(num) for num in range(m_sz)]
+    def water_quality_results(self, USZ, SZ):
+        columns_name = ["usz" + str(num) for num in range(USZ.m_usz)]
+        columns_name += ["sz" + str(num) for num in range(SZ.m_sz)]
         if len(self.concentration_soil_usz) != 0:
-            columns_name += ["usz_soil" + str(num) for num in range(m_usz)]
+            columns_name += ["usz_soil" + str(num) for num in range(USZ.m_usz)]
         if len(self.concentration_soil_sz) != 0:
-            columns_name += ["sz_soil" + str(num) for num in range(m_sz)]
-        columns_name += ["usz_rx" + str(num) for num in range(m_usz)]
-        columns_name += ["sz_rx" + str(num) for num in range(m_sz)]
+            columns_name += ["sz_soil" + str(num) for num in range(SZ.m_sz)]
+        columns_name += ["usz_rx" + str(num) for num in range(USZ.m_usz)]
+        columns_name += ["sz_rx" + str(num) for num in range(SZ.m_sz)]
         df_usz = pd.DataFrame(self.concentration_usz)
         df_sz = pd.DataFrame(self.concentration_sz)
         df_soil_usz = pd.DataFrame(self.concentration_soil_usz)
@@ -785,11 +731,14 @@ class Ammonia(Pollutant):
         return 0
 
     def f_plant_uptake_usz(self, time, usz_layer, USZ, SOIL_PLANT):
-        plant_uptake = -SOIL_PLANT.root_fraction * (self.Fm * USZ.theta[time] * self.concentration_usz_layers[usz_layer] / (self.Km + USZ.theta[time] * self.concentration_usz_layers[usz_layer]))
+        plant_uptake = -SOIL_PLANT.root_fraction * (self.Fm * USZ.theta[time] * self.concentration_usz_layers[usz_layer]
+                                                    / (self.Km + USZ.theta[time] *
+                                                       self.concentration_usz_layers[usz_layer]))
         return plant_uptake
 
     def f_plant_uptake_sz(self, time, sz_layer, SZ, SOIL_PLANT):
-        plant_uptake = -SOIL_PLANT.root_fraction * (self.Fm * SZ.theta[time] * self.concentration_sz_layers[sz_layer] / (self.Km + SZ.theta[time] * self.concentration_sz_layers[sz_layer]))
+        plant_uptake = -SOIL_PLANT.root_fraction * (self.Fm * SZ.theta[time] * self.concentration_sz_layers[sz_layer] /
+                                                    (self.Km + SZ.theta[time] * self.concentration_sz_layers[sz_layer]))
         return plant_uptake
 
 
@@ -816,8 +765,8 @@ class Nitrate(Pollutant):
         return reaction_rate
 
     def f_reaction_sz(self, sz_layer, GP, O2, DOC):
-        #     Of = O2.K/(O2.K+O2.concentration_sz_layers[sz_layer])
-        #     bDOCf = (DOC.concentration_sz_layers[sz_layer] + DOC.bDOCd*GP.dt)/(DOC.concentration_sz_layers[sz_layer] + DOC.bDOCd*GP.dt + DOC.KbDOC)
+        # Of = O2.K/(O2.K+O2.concentration_sz_layers[sz_layer]) bDOCf = (DOC.concentration_sz_layers[sz_layer] +
+        # DOC.bDOCd*GP.dt)/(DOC.concentration_sz_layers[sz_layer] + DOC.bDOCd*GP.dt + DOC.KbDOC)
         #
         #     k2 = GP.GP.k_denit*Of*bDOCf
         
@@ -826,11 +775,15 @@ class Nitrate(Pollutant):
         return denitrification
 
     def f_plant_uptake_usz(self, time, usz_layer, USZ, SOIL_PLANT):
-        plant_uptake = -SOIL_PLANT.root_fraction * (self.Fm * USZ.theta[time] * self.concentration_usz_layers[usz_layer] / (self.Km + USZ.theta[time] * self.concentration_usz_layers[usz_layer]))
+        plant_uptake = -SOIL_PLANT.root_fraction * (self.Fm * USZ.theta[time] *
+                                                    self.concentration_usz_layers[usz_layer] /
+                                                    (self.Km + USZ.theta[time] *
+                                                     self.concentration_usz_layers[usz_layer]))
         return plant_uptake
 
     def f_plant_uptake_sz(self, time, sz_layer, SZ, SOIL_PLANT):
-        plant_uptake = -SOIL_PLANT.root_fraction * (self.Fm * SZ.theta[time] * self.concentration_sz_layers[sz_layer] / (self.Km + SZ.theta[time] * self.concentration_sz_layers[sz_layer]))
+        plant_uptake = -SOIL_PLANT.root_fraction * (self.Fm * SZ.theta[time] * self.concentration_sz_layers[sz_layer] /
+                                                    (self.Km + SZ.theta[time] * self.concentration_sz_layers[sz_layer]))
         return plant_uptake
 
     def f_concentration_soil(self):
@@ -839,16 +792,26 @@ class Nitrate(Pollutant):
     def f_mass_soil(self):
         return 0
 
-    def f_mass_balance_stormwater(self, time, USZ, SZ, WFR, PZ, GP):
+    def f_mass_balance_stormwater(self, time, USZ, SZ, PZ, GP):
         self.mass_soil.append(self.f_mass_soil())
-        self.mass_accumulated_reaction.append(self.f_mass_reaction_rate(time, USZ.m_usz, SZ.m_sz, USZ.theta, SZ.theta, USZ.height, SZ.height, PZ.Ab, GP.hpipe))
+        self.mass_accumulated_reaction.append(self.f_mass_reaction_rate(time, USZ.m_usz, SZ.m_sz, USZ.theta, SZ.theta,
+                                                                        USZ.height, SZ.height, PZ.Ab, GP.hpipe))
         self.mass_accumulated_inflow.append(self.f_mass_inflow(time, GP.inflow, GP.dt))
         self.mass_accumulated_overflow.append(self.f_mass_overflow(time, PZ.overflow, GP.dt))
-        self.mass_accumulated_pipe_outflow.append(self.f_mass_pipe_outflow(time, USZ.m_usz, SZ.m_sz, SZ.pipe_outflow, GP.dt, GP.hpipe))
-        self.mass_accumulated_infiltrated_to_sz.append(self.f_mass_infiltration_to_sz(time, USZ.m_usz, SZ.m_sz, SZ.infiltration_to_surround, GP.dt, GP.hpipe))
-        self.mass_accumulated_evapotranspiration.append(self.f_mass_evapotranspiration(time, PZ.evapotranspiration_overall, GP.dt))
+        self.mass_accumulated_pipe_outflow.append(self.f_mass_pipe_outflow(time, USZ.m_usz, SZ.m_sz, SZ.pipe_outflow,
+                                                                           GP.dt, GP.hpipe))
+        self.mass_accumulated_infiltrated_to_sz.append(self.f_mass_infiltration_to_sz(time, USZ.m_usz, SZ.m_sz,
+                                                                                      SZ.infiltration_to_surround,
+                                                                                      GP.dt, GP.hpipe))
+        self.mass_accumulated_evapotranspiration.append(self.f_mass_evapotranspiration(time,
+                                                                                       PZ.evapotranspiration_overall,
+                                                                                       GP.dt))
         self.mass_pz.append(self.f_mass_pz(time, PZ.height_after, PZ.Ab))
-        mass_balance_stormwater = self.mass_accumulated_inflow[-1] - self.mass_pz[-1] - self.mass_accumulated_overflow[-1] - self.mass_accumulated_pipe_outflow[-1] - self.mass_accumulated_infiltrated_to_sz[-1] - self.mass_accumulated_evapotranspiration[-1] - self.mass_soil[-1] - self.mass_accumulated_reaction[-1]
+        mass_balance_stormwater = self.mass_accumulated_inflow[-1] - self.mass_pz[-1] - \
+                                  self.mass_accumulated_overflow[-1] - self.mass_accumulated_pipe_outflow[-1] - \
+                                  self.mass_accumulated_infiltrated_to_sz[-1] - \
+                                  self.mass_accumulated_evapotranspiration[-1] - self.mass_soil[-1] - \
+                                  self.mass_accumulated_reaction[-1]
         return mass_balance_stormwater
 
 class Oxygen(Pollutant):
@@ -870,19 +833,25 @@ class Oxygen(Pollutant):
         return 0
 
     def f_reaction_usz(self, usz_layer, GP, NH4):
-        reaction_rate = -self.k * self.concentration_usz_layers[usz_layer] - GP.k_nit * NH4.concentration_usz_layers[usz_layer] / 2
+        reaction_rate = -self.k * self.concentration_usz_layers[usz_layer] - GP.k_nit * \
+                        NH4.concentration_usz_layers[usz_layer] / 2
         return reaction_rate
 
     def f_reaction_sz(self, sz_layer, GP, NH4):
-        reaction_rate = -self.k * self.concentration_sz_layers[sz_layer] - GP.k_nit * NH4.concentration_sz_layers[sz_layer] / 2
+        reaction_rate = -self.k * self.concentration_sz_layers[sz_layer] - GP.k_nit * \
+                        NH4.concentration_sz_layers[sz_layer] / 2
         return reaction_rate
 
     def f_plant_uptake_usz(self, time, usz_layer, USZ, SOIL_PLANT):
-        plant_uptake = -SOIL_PLANT.root_fraction * (SOIL_PLANT.lamda * (USZ.theta[time] * SOIL_PLANT.c_o2_root - USZ.theta[time] * self.concentration_usz_layers[usz_layer]))
+        plant_uptake = -SOIL_PLANT.root_fraction * (SOIL_PLANT.lamda * (USZ.theta[time] * SOIL_PLANT.c_o2_root -
+                                                                        USZ.theta[time] *
+                                                                        self.concentration_usz_layers[usz_layer]))
         return plant_uptake
 
     def f_plant_uptake_sz(self, time, sz_layer, SZ, SOIL_PLANT):
-        plant_uptake = -SOIL_PLANT.root_fraction * (SOIL_PLANT.lamda * (SZ.theta[time] * SOIL_PLANT.c_o2_root - SZ.theta[time] * self.concentration_sz_layers[sz_layer]))
+        plant_uptake = -SOIL_PLANT.root_fraction * (SOIL_PLANT.lamda * (SZ.theta[time] * SOIL_PLANT.c_o2_root -
+                                                                        SZ.theta[time] *
+                                                                        self.concentration_sz_layers[sz_layer]))
         return plant_uptake
 
     def f_concentration_soil(self):
@@ -891,16 +860,26 @@ class Oxygen(Pollutant):
     def f_mass_soil(self):
         return 0
     
-    def f_mass_balance_stormwater(self, time, USZ, SZ, WFR, PZ, GP):
+    def f_mass_balance_stormwater(self, time, USZ, SZ, PZ, GP):
         self.mass_soil.append(self.f_mass_soil())
-        self.mass_accumulated_reaction.append(self.f_mass_reaction_rate(time, USZ.m_usz, SZ.m_sz, USZ.theta, SZ.theta, USZ.height, SZ.height, PZ.Ab, GP.hpipe))
+        self.mass_accumulated_reaction.append(self.f_mass_reaction_rate(time, USZ.m_usz, SZ.m_sz, USZ.theta, SZ.theta,
+                                                                        USZ.height, SZ.height, PZ.Ab, GP.hpipe))
         self.mass_accumulated_inflow.append(self.f_mass_inflow(time, GP.inflow, GP.dt))
         self.mass_accumulated_overflow.append(self.f_mass_overflow(time, PZ.overflow, GP.dt))
-        self.mass_accumulated_pipe_outflow.append(self.f_mass_pipe_outflow(time, USZ.m_usz, SZ.m_sz, SZ.pipe_outflow, GP.dt, GP.hpipe))
-        self.mass_accumulated_infiltrated_to_sz.append(self.f_mass_infiltration_to_sz(time, USZ.m_usz, SZ.m_sz, SZ.infiltration_to_surround, GP.dt, GP.hpipe))
-        self.mass_accumulated_evapotranspiration.append(self.f_mass_evapotranspiration(time, PZ.evapotranspiration_overall, GP.dt))
+        self.mass_accumulated_pipe_outflow.append(self.f_mass_pipe_outflow(time, USZ.m_usz, SZ.m_sz, SZ.pipe_outflow,
+                                                                           GP.dt, GP.hpipe))
+        self.mass_accumulated_infiltrated_to_sz.append(self.f_mass_infiltration_to_sz(time, USZ.m_usz, SZ.m_sz,
+                                                                                      SZ.infiltration_to_surround,
+                                                                                      GP.dt, GP.hpipe))
+        self.mass_accumulated_evapotranspiration.append(self.f_mass_evapotranspiration(time,
+                                                                                       PZ.evapotranspiration_overall,
+                                                                                       GP.dt))
         self.mass_pz.append(self.f_mass_pz(time, PZ.height_after, PZ.Ab))
-        mass_balance_stormwater = self.mass_accumulated_inflow[-1] - self.mass_pz[-1] - self.mass_accumulated_overflow[-1] - self.mass_accumulated_pipe_outflow[-1] - self.mass_accumulated_infiltrated_to_sz[-1] - self.mass_accumulated_evapotranspiration[-1] - self.mass_soil[-1] - self.mass_accumulated_reaction[-1]
+        mass_balance_stormwater = self.mass_accumulated_inflow[-1] - self.mass_pz[-1] - \
+                                  self.mass_accumulated_overflow[-1] - self.mass_accumulated_pipe_outflow[-1] - \
+                                  self.mass_accumulated_infiltrated_to_sz[-1] - \
+                                  self.mass_accumulated_evapotranspiration[-1] - self.mass_soil[-1] - \
+                                  self.mass_accumulated_reaction[-1]
         return mass_balance_stormwater
 
 class DissolvedOrganicCarbon(Pollutant):
