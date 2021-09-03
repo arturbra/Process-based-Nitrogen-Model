@@ -4,7 +4,6 @@
 import random
 from deap import base, creator
 from deap import tools
-from model_pf import *
 
 # !!!! para calibrar para mais de um evento, fazer um arquivo continuo com os eventos !!!!
 

@@ -1,6 +1,8 @@
 import configparser
 from math import pi
 import pandas as pd
+import random
+from Nitrogen_quality_module import water_flow_module
 
 
 class GeneralParameters:
@@ -345,6 +347,103 @@ class Calibration:
         self.obs_file_no3 = setup['QUALITY_CALIBRATION']['obs_file_no3']
         self.show_summary = bool(setup['QUALITY_CALIBRATION']['show_summary'])
 
+    def square_difference_sum_simulated_observed(self, observed, simulated):
+        difference = simulated - observed
+        square = difference ** 2
+        squares_sum = square.sum()
+        return squares_sum
+
+    def observed_average_square_difference(self, observed):
+        average_observed = observed.mean()
+        difference = observed - average_observed
+        square = difference ** 2
+        squares_sum = square.sum()
+        return squares_sum
+
+    def penalty(self, individual):
+        if self.Kc_min <= individual[0] <= self.Kc_max:
+            pen0 = 0
+        else:
+            pen0 = -10
+
+        if self.Ks_min <= individual[1] <= self.Ks_max:
+            pen1 = 0
+        else:
+            pen1 = -10
+
+        if self.sh_min <= individual[2] <= self.sh_max:
+            pen2 = 0
+        else:
+            pen2 = -10
+
+        if self.sw_min <= individual[3] <= self.sw_max:
+            pen3 = 0
+        else:
+            pen3 = -10
+
+        if self.sfc_min <= individual[4] <= self.sfc_max:
+            pen4 = 0
+        else:
+            pen4 = -10
+
+        if self.ss_min <= individual[5] <= self.ss_max:
+            pen5 = 0
+        else:
+            pen5 = -10
+
+        if self.Kf_min <= individual[6] <= self.Kf_max:
+            pen6 = 0
+        else:
+            pen6 = -10
+
+        if self.Cd_min <= individual[7] <= self.Cd_max:
+            pen7 = 0
+        else:
+            pen7 = -10
+
+        pen_total = pen0 + pen1 + pen2 + pen3 + pen4 + pen5 + pen6 + pen7
+        return pen_total
+
+    def get_individual_values(self, general_parameters, usz, individual):
+        general_parameters.Kc = individual[0]
+        usz.Ks = individual[1]
+        usz.sh = individual[2]
+        usz.sw = individual[3]
+        usz.sfc = individual[4]
+        usz.ss = individual[5]
+        usz.Kf = individual[6]
+        general_parameters.Cd = individual[7]
+
+
+    def evaluate_by_nash(self, individual):
+        SETUP_FILE = "parameters.ini"
+        WATER_FLOW_INPUT_FILE = "water_inflow.csv"
+        GP = GeneralParameters(SETUP_FILE, WATER_FLOW_INPUT_FILE)
+        USZ = UnsaturatedZone(SETUP_FILE, GP.L, GP.hpipe, GP.dz)
+        PZ = PondingZone(SETUP_FILE)
+        SZ = SaturatedZone(SETUP_FILE, GP, USZ)
+        self.get_individual_values(GP, USZ, individual)
+        calibration_input_file = "outflow_obs.csv"
+        water_flow_module(GP, USZ, PZ, SZ)
+        penalty = self.penalty(individual)
+        data = pd.DataFrame(
+            {"pipe_outflow": SZ.pipe_outflow, "height_pz": PZ.height_after, "t": range(len(SZ.pipe_outflow))})
+        data.set_index("t", inplace=True)
+
+        obs_df = pd.read_csv(calibration_input_file)
+        merge_df = data.merge(obs_df, left_index=True, right_index=True)
+        pipe_outflow_sum_square_difference = self.square_difference_sum_simulated_observed(
+            merge_df["pipe_outflow"], merge_df["Qorif_obs"])
+        pipe_outflow_sum_observed_average_difference = self.observed_average_square_difference(
+            merge_df["Qorif_obs"])
+        pz_height_sum_square_difference = self.square_difference_sum_simulated_observed(merge_df["height_pz"],
+                                                                                        merge_df["h_obs"])
+        pz_height_sum_observed_average_difference = self.observed_average_square_difference(merge_df["h_obs"])
+        nash_pipe_outflow = 1 - pipe_outflow_sum_square_difference / pipe_outflow_sum_observed_average_difference
+        nash_pz_height = 1 - pz_height_sum_square_difference / pz_height_sum_observed_average_difference
+        nash = nash_pipe_outflow + nash_pz_height / 2 + penalty
+        return nash,
+    
 
 class SoilPlant:
     def __init__(self, setup_file, nusz_ini):
