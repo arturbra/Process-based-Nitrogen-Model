@@ -331,7 +331,7 @@ def water_quality_module(GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
     return data_o2, data_nh4, data_no3, data_doc
 
 
-def run(interaction):
+def run_tests(interaction, hpipes, results_paths):
     SETUP_FILE = "parameters.ini"
     WATER_FLOW_INPUT_FILE = "water_inflow.csv"
     WATER_QUALITY_INPUT_FILE = "concentration_inflow.csv"
@@ -367,22 +367,3 @@ def run(interaction):
         print("Don't panic. You can always Rollback")
         print(len(wf_test), len(nh4_test), len(o2_test), len(no3_test), len(doc_test))
 
-
-if __name__ == '__main__':
-    hpipes = [0, 0.1, 0.2, 0.3, 0.4]
-    results_paths = ["results/results_00/", "results/results_10/",
-                     "results/results_20/", "results/results_30/",
-                     "results/results_40/"]
-    start = datetime.datetime.now()
-
-    for test in range(len(hpipes)):
-        run(test)
-
-    # data_nh4.to_csv('results_Kin_pf_nh4_2.csv', index = False)
-    # data_o2.to_csv('results_Kin_pf_o2.csv', index = False)
-    # data_no3.to_csv('results_Kin_pf_no3.csv', index = False)
-    # data_doc.to_csv('results_Kin_pf_doc.csv', index = False)
-
-    end = datetime.datetime.now()
-    print('Elapsed time: ', end - start)
-    print('Done!')
