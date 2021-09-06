@@ -2,7 +2,7 @@ import configparser
 from math import pi
 import pandas as pd
 import random
-from Nitrogen_quality_module import water_flow_module
+from modified_mpire import water_flow_module
 
 
 class GeneralParameters:

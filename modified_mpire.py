@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import parameters
-import results_tests
+import tests
 
 
 def water_flow_module(GP, USZ, PZ, SZ):
@@ -328,39 +328,3 @@ def water_quality_module(GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
 
     return data_o2, data_nh4, data_no3, data_doc
 
-
-def run_tests(interaction, hpipes, results_paths):
-    SETUP_FILE = "parameters.ini"
-    WATER_FLOW_INPUT_FILE = "water_inflow.csv"
-    WATER_QUALITY_INPUT_FILE = "concentration_inflow.csv"
-    GP = parameters.GeneralParameters(SETUP_FILE, WATER_FLOW_INPUT_FILE)
-    GP.hpipe = hpipes[interaction]
-    USZ = parameters.UnsaturatedZone(SETUP_FILE, GP.L, GP.hpipe, GP.dz)
-    PZ = parameters.PondingZone(SETUP_FILE)
-    SZ = parameters.SaturatedZone(SETUP_FILE, GP, USZ)
-    SOIL_PLANT = parameters.SoilPlant(SETUP_FILE, USZ.nusz_ini)
-    NH4 = parameters.Ammonia(USZ.m_usz, SZ.m_sz, SETUP_FILE, WATER_QUALITY_INPUT_FILE)
-    NO3 = parameters.Nitrate(USZ.m_usz, SZ.m_sz, SETUP_FILE, WATER_QUALITY_INPUT_FILE)
-    O2 = parameters.Oxygen(USZ.m_usz, SZ.m_sz, SETUP_FILE, WATER_QUALITY_INPUT_FILE)
-    DOC = parameters.DissolvedOrganicCarbon(USZ.m_usz, SZ.m_sz, SETUP_FILE, WATER_QUALITY_INPUT_FILE)
-    water_flow_module(GP, USZ, PZ, SZ)
-    print("hpipe:", GP.hpipe)
-    data_o2, data_nh4, data_no3, data_doc = water_quality_module(GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC)
-
-    wf_path = results_paths[interaction] + "water_flow_results.csv"
-    nh4_path = results_paths[interaction] + "results_Kin_pf_nh4_2.csv"
-    o2_path = results_paths[interaction] + "results_Kin_pf_o2.csv"
-    no3_path = results_paths[interaction] + "results_Kin_pf_no3.csv"
-    doc_path = results_paths[interaction] + "results_Kin_pf_doc.csv"
-
-    wf_test = results_tests.water_flow_comparison_test(wf_path, GP, PZ, USZ, SZ)
-    nh4_test = results_tests.water_quality_comparison_test(nh4_path, data_nh4)
-    o2_test = results_tests.water_quality_comparison_test(o2_path, data_o2)
-    no3_test = results_tests.water_quality_comparison_test(no3_path, data_no3)
-    doc_test = results_tests.water_quality_comparison_test(doc_path, data_doc)
-
-    if len(wf_test) == 0 and len(nh4_test) == 0 and len(o2_test) == 0 and len(no3_test) == 0 and len(doc_test) == 0:
-        print("Passed at this test. The results seems to be the same as the original code.")
-    else:
-        print("Don't panic. You can always Rollback")
-        print(len(wf_test), len(nh4_test), len(o2_test), len(no3_test), len(doc_test))
