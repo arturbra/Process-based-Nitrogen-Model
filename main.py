@@ -1,5 +1,5 @@
 import parameters
-from Nitrogen_quality_module import water_flow_module, water_quality_module
+from modified_mpire import water_flow_module, water_quality_module
 import water_flow_calibration
 
 if __name__ == "__main__":
@@ -13,20 +13,20 @@ if __name__ == "__main__":
 
         if action == "f":
             SETUP_FILE = "parameters.ini"
-            WATER_FLOW_INPUT_FILE = "water_inflow.csv"
-            WATER_QUALITY_INPUT_FILE = "concentration_inflow.csv"
+            WATER_FLOW_INPUT_FILE = "input_files/nitrogen/test_event/water_inflow.csv"
             GP = parameters.GeneralParameters(SETUP_FILE, WATER_FLOW_INPUT_FILE)
             USZ = parameters.UnsaturatedZone(SETUP_FILE, GP.L, GP.hpipe, GP.dz)
             PZ = parameters.PondingZone(SETUP_FILE)
             SZ = parameters.SaturatedZone(SETUP_FILE, GP, USZ)
             water_flow_module(GP, USZ, PZ, SZ)
             print("Done")
+            MB = parameters.MassBalance(GP, PZ, USZ, SZ)
             break
 
         elif action == "q":
             SETUP_FILE = "parameters.ini"
-            WATER_FLOW_INPUT_FILE = "water_inflow.csv"
-            WATER_QUALITY_INPUT_FILE = "concentration_inflow.csv"
+            WATER_FLOW_INPUT_FILE = "input_files/nitrogen/test_event/water_inflow.csv"
+            WATER_QUALITY_INPUT_FILE = "input_files/nitrogen/test_event/concentration_inflow.csv"
             GP = parameters.GeneralParameters(SETUP_FILE, WATER_FLOW_INPUT_FILE)
             USZ = parameters.UnsaturatedZone(SETUP_FILE, GP.L, GP.hpipe, GP.dz)
             PZ = parameters.PondingZone(SETUP_FILE)
@@ -39,6 +39,7 @@ if __name__ == "__main__":
             water_flow_module(GP, USZ, PZ, SZ)
             data_o2, data_nh4, data_no3, data_doc = water_quality_module(GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC)
             print("Done")
+            MB = parameters.MassBalance(GP, PZ, USZ, SZ)
             break
 
         elif action == "cf":

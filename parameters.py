@@ -1,6 +1,7 @@
 import configparser
 from math import pi
 import pandas as pd
+import numpy as np
 import random
 from modified_mpire import water_flow_module
 
@@ -36,7 +37,6 @@ class GeneralParameters:
         self.inflow = csv_file["Qin"]
         self.evapotranspiration_max = csv_file["ET"]
         self.rain_inflow = csv_file["Qrain"]
-
 
 
 class PondingZone:
@@ -1009,3 +1009,48 @@ class DissolvedOrganicCarbon(Pollutant):
     def f_reaction_sz(self, sz_layer):
         R_doc = -self.k * self.concentration_sz_layers[sz_layer] + self.bDOCd
         return R_doc
+
+
+class MassBalance:
+    def __init__(self, GP, PZ, USZ, SZ):
+        inflow_volume = GP.inflow.sum() * GP.dt * 1000
+        overflow_volume = np.array(PZ.overflow).sum() * GP.dt * 1000
+        evapotranspiration_volume = np.array(PZ.evapotranspiration_overall).sum() * GP.dt * 1000
+        pipe_outflow_volume = np.array(SZ.pipe_outflow).sum() * GP.dt * 1000
+        volume_storage_observed = inflow_volume - overflow_volume - evapotranspiration_volume - pipe_outflow_volume
+
+        layers_volume_usz = (PZ.Ab * (GP.L - GP.hpipe)) / USZ.m_usz
+        initial_volume_usz = layers_volume_usz * USZ.theta[0] * USZ.m_usz
+        final_volume_usz = layers_volume_usz * USZ.theta[-1] * USZ.m_usz
+        if SZ.m_sz > 0:
+            layers_volume_sz = (PZ.Ab * GP.hpipe) / SZ.m_sz
+            initial_volume_sz = layers_volume_sz * SZ.theta[0] * SZ.m_sz
+            final_volume_sz = layers_volume_sz * SZ.theta[-1] * SZ.m_sz
+        else:
+            initial_volume_sz = 0
+            final_volume_sz = 0
+            
+        volume_storage_modeled = (final_volume_usz + final_volume_sz - initial_volume_usz - initial_volume_sz) * 1000
+        balance_verification = volume_storage_modeled - volume_storage_observed
+
+        print('.')
+        print("\033[1:30m........ Informações ........ \033[m")
+        print('Inflow volume: {:.2f} L'.format(inflow_volume))  # m3
+        print('Pipe outflow volume: {:.2f} L'.format(pipe_outflow_volume))  # m3
+        print('Evapotranspiration volume: {:.2f} L'.format(evapotranspiration_volume))  # m3
+        print('.' * 30)
+        print('.')
+        print("\033[1:30m...... Balanço de massa ...... \033[m")
+        print('Volume storage observed: {:.2f} L'.format(volume_storage_observed))
+        print('Volume storage modeled: {:.2f} L'.format(volume_storage_modeled))
+        print('Balance verification: {:.2f} L'.format(balance_verification))
+        percentage = ((balance_verification*100)/volume_storage_observed)
+
+        if 1 >= percentage >= - 1:
+            print("\033[1:34mAcceptable mass balance! {:.2f} % de erro \033[m".format(percentage))
+        else:
+            print("\033[1:31mNot acceptable mass balance: {:.2f} % de erro\033[m".format(percentage))
+
+
+
+
