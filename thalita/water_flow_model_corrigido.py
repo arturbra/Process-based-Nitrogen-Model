@@ -13,15 +13,15 @@ import math
 ## All files should have the same length!!
 
 #Rainfall file
-Qrain_file = pd.read_csv('01_Qrain_file2.csv')
+Qrain_file = pd.read_csv('thalita/01_Qrain_file2.csv')
 tQrain = Qrain_file['Qrain'].tolist()
 
 #Evapotranspiration file
-Emax_file = pd.read_csv('01_Emax_file2.csv')
+Emax_file = pd.read_csv('thalita/01_Emax_file2.csv')
 tEmax = Emax_file['Emax'].tolist()
 
 #Inflow file
-Qin_file = pd.read_csv('01_Qin_file2.csv')
+Qin_file = pd.read_csv('thalita/01_Qin_file2.csv')
 tQin = Qin_file['Qin'].tolist()
 
 
@@ -39,7 +39,7 @@ tQin = Qin_file['Qin'].tolist()
 
 ###  2. Definition of parameters
 
-setup_file = "parametros_quanti_RSUP.ini"
+setup_file = "thalita/parametros_quanti_RSUP.ini"
 setup = configparser.ConfigParser()
 setup.read(setup_file)
 
@@ -391,7 +391,7 @@ if __name__ == '__main__':
     data[['Qin', 'Qover', 'Qpipe', 'Qinf_sz']].plot(figsize=(9, 5), linewidth=1)
     plt.show()
       
-    data.to_csv('water_flow_model_results_valid.csv', index=False, sep=';', decimal=',')
+    #data.to_csv('water_flow_model_results_valid.csv', index=False, sep=';', decimal=',')
 
     ###  7. Water balance
     

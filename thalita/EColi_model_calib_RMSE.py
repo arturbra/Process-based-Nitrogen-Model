@@ -16,7 +16,7 @@ plt.style.use('ggplot')
 print('Starting..')
 inicio = datetime.datetime.now()
 
-setup_file = "parametros_quali_RMSE.ini"
+setup_file = "thalita/parametros_quali_RMSE.ini"
 setup = configparser.ConfigParser()
 setup.read(setup_file)
 
@@ -93,17 +93,17 @@ def get_from_individual(individual):
 
 
 # **2. Input variables**
-from water_flow_model_corrigido import *
+from thalita.water_flow_model_corrigido import *
 
 wf_run()
 
-cin_file = pd.read_csv('01_Cin_file2.csv')
+cin_file = pd.read_csv('thalita/01_Cin_file2.csv')
 cin_list = cin_file['Cin e coli [mg/L]'].tolist()
 
-Temp_file = pd.read_csv('01_Temperature_file2.csv')
+Temp_file = pd.read_csv('thalita/01_Temperature_file2.csv')
 tTemp = Temp_file['Temperature [celsius]'].tolist()
 
-Qin_file = pd.read_csv('01_Qin_file2.csv')
+Qin_file = pd.read_csv('thalita/01_Qin_file2.csv')
 Qin_list = Qin_file['Qin'].tolist()
 
 # cin_file = pd.read_csv('input_file_Cin.csv')
@@ -914,7 +914,7 @@ if __name__ == '__main__':
 
     data_EColi = EColi_run(param)
 
-    data_EColi.to_csv('EColi_results_calib.csv', index=False, sep=';', decimal=',')
+    data_EColi.to_csv('ecoli_tested_thalita_parameters.csv', index=False, sep=',', decimal='.')
 
     fim = datetime.datetime.now()
     print('Elapsed time: ', fim - inicio)

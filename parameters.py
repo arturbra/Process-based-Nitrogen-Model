@@ -202,8 +202,7 @@ class UnsaturatedZone:
         return alfa, beta
 
     def f_unit_flux(self, time, usz_layer, GP, PZ, SZ):
-        alfa = (self.m_usz - 1 - usz_layer) / (self.m_usz - 1)
-        beta = usz_layer / (self.m_usz - 1)
+        alfa, beta = self.f_alfa_beta(usz_layer)
 
         if GP.hpipe > 0:
             unit_flux = (alfa * (PZ.infiltration_to_filter_material[time] - PZ.evapotranspiration[time]) + beta * (self.infiltration_to_sz[time] - self.capillary_rise[time])) / (PZ.Ab * self.theta[time])
@@ -286,8 +285,7 @@ class SaturatedZone:
         return alfa2, beta2
 
     def f_unit_flux(self, time, sz_layer, PZ, USZ):
-        alfa = (self.m_sz - 1 - sz_layer) / (self.m_sz - 1)
-        beta = sz_layer / (self.m_sz - 1)
+        alfa, beta = self.f_alfa_beta(sz_layer)
         unit_flux = (alfa * (USZ.infiltration_to_sz[time] - USZ.capillary_rise[time] - USZ.evapotranspiration[time]) + beta * (self.pipe_outflow_now + self.infiltration_to_surround[time])) / (PZ.Ab * self.theta[time])
         return unit_flux
 
@@ -449,7 +447,7 @@ class SoilPlant:
     def __init__(self, setup_file, nusz_ini):
         setup = configparser.ConfigParser()
         setup.read(setup_file)
-        self.ro_pd = float(setup['SOIL_PLANT']['ro'])
+        self.ro_pd = float(setup['SOIL_PLANT']['ro_pd'])
         self.f = float(setup['SOIL_PLANT']['f'])
         self.lamda = float(setup['SOIL_PLANT']['lamda'])
         self.lamta = float(setup['SOIL_PLANT']['lamta'])
@@ -1009,6 +1007,130 @@ class DissolvedOrganicCarbon(Pollutant):
     def f_reaction_sz(self, sz_layer):
         R_doc = -self.k * self.concentration_sz_layers[sz_layer] + self.bDOCd
         return R_doc
+
+
+class Ecoli(Pollutant):
+    def __init__(self, nusz_ini, m_usz, m_sz, setup_file, inflow_file):
+        super(Ecoli, self).__init__(m_usz, m_sz)
+        setup = configparser.ConfigParser()
+        setup.read(setup_file)
+        self.kads1 = float(setup['ECOLI']['kads1'])
+        self.kdes1 = float(setup['ECOLI']['kdes1'])
+        self.sita = float(setup['ECOLI']['sita'])
+        if self.sita == 0:
+            self.sita = 0.0000000000001
+        self.mue1 = float(setup['ECOLI']['mue1'])
+        self.kstr = 0
+        self.etta = float(setup['ECOLI']['etta'])
+        self.b1 = float(setup['ECOLI']['b1'])
+        self.lamta1 = float(setup['SOIL_PLANT']['lamta1'])
+        self.d50 = float(setup['MODEL']['d50'])
+        self.kads2 = self.kads1
+        self.mue2 = self.mue1
+        self.kdes2 = self.kdes1
+        self.lamta2 = self.lamta1
+        self.c_usz_list = []
+        self.csoil_usz_list = []
+        self.c_sz_list = []
+        self.csoil_sz_list = []
+        self.cpz_a = 0
+        self.cpz = []
+        self.Rx_usz_list = []
+        self.Rx_sz_list = []
+        self.csoil_usz_a = 0
+        self.csoil_sz_a = 0
+        self.c0_usz = [0]
+        self.c0_usz = self.c0_usz * m_usz
+        self.csoil0_usz = [self.csoil_usz_a]
+        self.csoil0_usz = self.csoil0_usz * m_usz
+        self.c_usz_list.append(self.c0_usz)
+        self.csoil_usz_list.append(self.csoil0_usz)
+        self.Rx_usz_list.append(self.c0_usz)
+        # E_coli #SZ
+        self.c0_sz = [0]
+        self.c0_sz = self.c0_sz * m_sz
+        self.c_sz_list.append(self.c0_sz)
+        self.csoil_sz_list.append(self.c0_sz)
+        self.Rx_sz_list.append(self.c0_sz)
+        self.Mstor_ast_list = []
+        self.Msoil_acum = []
+        self.MRx_acum = []
+        self.M_in_acum = []
+        self.M_over_acum = []
+        self.Mpipe_acum = []
+        self.Minf_sz_acum = []
+        self.M_et_acum = []
+        self.M_pz_list = []
+        self.Mstor_mb_list = []
+        csv_file = pd.read_csv(inflow_file, sep=';')
+        self.concentration_inflow = csv_file['ecoli'].tolist()
+        self.temperature = csv_file['temperature'].tolist()
+
+    def f_reaction_pz(self):
+        reaction = -self.muel * self.concentration_pz_before
+        return reaction
+
+    def f_straining(self):
+        return 0
+    
+    def f_concentration_soil_usz(self, time, usz_layer, GP, USZ, SOIL_PLANT, threshold=0.00000000000001):
+        reaction_rate = 0
+        absolute_soil_concentration = (self.concentration_soil_usz_before +
+                                       ((USZ.theta[time] / SOIL_PLANT.ro) * self.kads1 *
+                                        self.concentration_usz_layers[usz_layer] - self.kdes1 *
+                                        self.concentration_soil_usz_before - reaction_rate) * GP.dt)
+
+        if absolute_soil_concentration <= 0:
+            soil_concentration = 0
+        else:
+            soil_concentration = absolute_soil_concentration
+        if soil_concentration < threshold:
+            soil_concentration = 0
+        return soil_concentration
+
+    def f_dieoff_liquid_phase_usz(self, time, usz_layer, USZ):
+        dieoff = -USZ.theta[time] * self.muel1 * self.concentration_usz_layers[usz_layer]
+        return dieoff
+
+    def f_dieoff_solid_phase_usz(self, usz_layer):
+        dieoff = -self.mues1 * self.concentration_soil_usz_now[usz_layer]
+        return dieoff
+
+    def f_diffusion_coefficient_usz(self, USZ):
+        diffusion = self.lamta1 * USZ.unit_flux_now
+        return diffusion
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class MassBalance:

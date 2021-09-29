@@ -327,3 +327,578 @@ def water_quality_module(GP, USZ, PZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
 
     return data_o2, data_nh4, data_no3, data_doc
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+__author__ = 'thalita'
+
+# !/usr/bin/env python
+# coding: utf-8
+
+import parameters
+from modified_mpire import water_flow_module
+import pandas as pd
+
+
+###FUNCTIONS####
+def falfa_beta_sz(j):
+    if GP.hpipe <= 0.03:
+        alfa2 = 0.5
+        beta2 = 0.5
+    else:
+        alfa2 = (SZ.m_sz - 1 - j) / (SZ.m_sz - 1)
+        beta2 = j / (SZ.m_sz - 1)
+
+    return alfa2, beta2
+
+def fV_sz(alfa2, beta2, Qfs, Qhc, Qet2, Qpipe, Qinf_sz, teta_i_sz):
+    V_sz = (alfa2 * (Qfs - Qhc - Qet2) + beta2 * (Qpipe + Qinf_sz)) / (PZ.Ab * teta_i_sz)
+
+    return V_sz
+
+def fD_x(V_x):
+    D_x = EC.lamta1 * V_x
+    return D_x
+
+def fPe_usz(V_usz, D_usz):
+    if D_usz > 0:
+        Pe_usz = V_usz * GP.dz / D_usz
+    else:
+        Pe_usz = 100
+
+    return Pe_usz
+
+def fPe_sz(V_sz, D_sz):
+    D_sz = EC.lamta2 * V_sz
+    if D_sz > 0:
+        Pe_sz = V_sz * GP.dz / D_sz
+    else:
+        Pe_sz = 100
+
+    return Pe_sz
+
+
+##### Transport equations #####
+def ftransport(teta_i, teta_iplus1, ci, csoil_i, dc, dc_dz, kads, kdes, D_x, V_x, Rx):
+    if teta_i == 0:
+        delta_c_i1 = 0
+    elif teta_iplus1 == 0:
+        delta_c_i1 = 0
+    else:
+        delta_c_i1 = ((1 / teta_iplus1) * GP.dt * (-teta_i * kads * ci
+                                                + SOIL_PLANT.ro * kdes * csoil_i
+                                                + teta_i * (D_x * (dc / GP.dz ** 2)
+                                                            - V_x * dc_dz)
+                                                + Rx))
+    return delta_c_i1
+
+def fcsoil(csoil_a, teta, kads, ci, kdes, Rxs):
+    csoil_abs = csoil_a + ((teta / SOIL_PLANT.ro) * kads * ci - kdes * csoil_a + Rxs) * GP.dt
+
+    if csoil_abs <= 0:
+        csoil = 0
+    else:
+        csoil = csoil_abs
+
+    return csoil
+
+def fR_dieoff_l(teta_i, muel, ci):
+    dieoff_l = -teta_i * muel * ci
+
+    return dieoff_l
+
+def fR_dieoff_s(mues, csoil):
+    dieoff_s = -mues * csoil
+    return dieoff_s
+
+###ENDFUNCTIONS####
+
+
+####### **4. Model routine**
+def ecoli_module(GP, PZ, USZ, SZ, SOIL_PLANT, EC):
+    ##### Ponding Zone
+    for time in range(len(GP.rain_inflow) - 1):
+        PZ.height_now = PZ.height_after[time]
+        if PZ.height_now < 0.001:
+            PZ.height_now = 0
+        else:
+            PZ.height_now = PZ.height_now
+
+        if time == 0:
+            PZ.height_before = 0
+        else:
+            PZ.height_before = PZ.height_after[time - 1]
+
+        if time == 0:
+            SZ.pipe_outflow_now = 0
+        else:
+            SZ.pipe_outflow_now = SZ.pipe_outflow[time]
+
+        ### Reacao na ponding zone ###
+        EC.muel = EC.mue1 * EC.sita ** (EC.temperature[time] - 20)
+        EC.reaction_rate_pz_now = EC.f_reaction_pz()
+
+        if time < (len(GP.rain_inflow) - 1):
+            USZ.theta_after = USZ.theta[time + 1]
+            SZ.theta_after = SZ.theta[time + 1]
+        else:
+            USZ.theta_after = USZ.theta[time]
+            SZ.theta_after = SZ.theta[time]
+
+        if PZ.height_now == 0:
+            EC.concentration_pz_now = 0
+        else:
+            EC.concentration_pz_now = PZ.f_concentration(time, GP, EC)
+
+        EC.concentration_pz.append(EC.concentration_pz_now)
+        EC.concentration_pz_before = EC.concentration_pz[-1]
+
+        #### SOIL MIX
+        ## die-off in USZ, according to s[time]
+        EC.mues1 = EC.mue1 * EC.sita ** (EC.temperature[time] - 20)
+        EC.muel1 = EC.mue1 * EC.sita ** (EC.temperature[time] - 20)
+        EC.muel2 = EC.mue2 * EC.sita ** (EC.temperature[time] - 20)
+        EC.mues2 = EC.mue2 * EC.sita ** (EC.temperature[time] - 20)
+
+        # USZ
+        EC.concentration_usz_layers = EC.concentration_usz[time].copy()
+
+        # SZ
+        if GP.hpipe >= 0.03:
+            EC.concentration_sz_layers = EC.concentration_sz[time].copy()  # copiar lista
+
+        if USZ.m_usz != 0:
+            EC.concentration_usz_layers_now = []
+            EC.concentration_soil_usz_now = []
+            EC.reaction_rate_usz_layers = []
+
+            # Predictive step
+            ###   USZ   ####
+            for usz_layer in range(USZ.m_usz):
+                if usz_layer < (USZ.m_usz - 1):
+                    EC.concentration_usz_next_layer = EC.concentration_usz_layers[usz_layer + 1]
+                else:
+                    EC.concentration_usz_next_layer = 0
+
+                EC.concentration_soil_usz_before = EC.concentration_soil_usz[time][usz_layer]
+                EC.concentration_soil_usz_layer = EC.f_straining()
+                EC.concentration_soil_usz_now.append(EC.f_concentration_soil_usz(time, usz_layer, GP, USZ, SOIL_PLANT))
+
+                USZ.unit_flux_now = USZ.f_unit_flux(time, usz_layer, GP, PZ, SZ)
+                USZ.unit_flux.append(USZ.unit_flux_now)
+
+                ## Reacoes ## dieoff_l (parte liquida) + straining + dieoff (parte solida)
+                EC.dieoff_liquid_phase = EC.f_dieoff_liquid_phase_usz(time, usz_layer, USZ)
+                EC.straining = EC.f_straining()
+                EC.dieoff_solid_phase = EC.f_dieoff_solid_phase_usz(usz_layer)
+                EC.reaction_rate_usz_now = EC.dieoff_liquid_phase + EC.straining + EC.dieoff_solid_phase
+                EC.reaction_rate_usz_layers.append(EC.reaction_rate_usz_now * (1 / USZ.theta_after) * GP.dt)
+
+                ## Coeficiente de difusao ##
+                EC.D = EC.f_diffusion_coefficient_usz(USZ)
+                EC.kads = EC.kads1
+                EC.kdes = EC.kdes1
+                EC.peclet = USZ.f_peclet(GP, EC)
+
+                dc, dc_dz = EC.f_delta_concentration_layer_usz(usz_layer, GP.dz, USZ.m_usz)
+
+                ### Transport usz ###
+                delta_c_usz = ftransport(USZ.theta[time], USZ.theta_after, EC.concentration_usz_layers[usz_layer], EC.concentration_soil_usz_now[usz_layer], dc, dc_dz, EC.kads1, EC.kdes1,
+                                         EC.D, USZ.unit_flux_now, EC.reaction_rate_usz_now)
+
+
+                if USZ.theta_after > 0:
+                    ci1 = EC.concentration_usz_layers[usz_layer] + delta_c_usz
+                else:
+                    ci1 = 0
+
+                if ci1 < 0.01:
+                    ci1 = 0
+                else:
+                    ci1 = ci1
+
+                EC.concentration_usz_layers_now.append(ci1)
+
+            ### SZ ###
+
+            cj_i1 = []
+            csoil_i_sz = []
+            Rxj = []
+
+            for j in range(SZ.m_sz):
+                cj_sz = EC.concentration_sz_layers[j]
+                cjminus1 = EC.concentration_sz_layers[j - 1]
+                if j < (SZ.m_sz - 1):
+                    cjplus1 = EC.concentration_sz_layers[j + 1]
+                else:
+                    cjplus1 = 0
+                cmminus1 = EC.concentration_usz_layers[USZ.m_usz - 1]
+
+                ## Concentracao no solo - sz ##
+                EC.csoil_sz_a = EC.csoil_sz_list[time][j]  # chamar a lista mais ampla
+
+                Rxi_soil_sz = 0
+
+                csoil_sz = fcsoil(EC.csoil_sz_a, SZ.theta[time], EC.kads2, cj_sz, EC.kdes2, Rxi_soil_sz)
+
+                if csoil_sz < 0.00000000000001:
+                    csoil_sz = 0
+
+                csoil_i_sz.append(csoil_sz)
+
+                V_sz = []
+                alfa2, beta2 = falfa_beta_sz(j)
+
+                Vi_sz = fV_sz(alfa2, beta2, USZ.infiltration_to_sz[time], USZ.capillary_rise[time], USZ.evapotranspiration[time], SZ.pipe_outflow_now, SZ.infiltration_to_surround[time], SZ.theta[time])
+                V_sz.append(Vi_sz)
+
+                ## Reacoes ## dieoff_l (parte liquida) + dieoff_s (parte solida)
+                Rxi_sz = fR_dieoff_l(SZ.theta[time], EC.muel2, cj_sz) + fR_dieoff_s(EC.mues2, csoil_sz)
+
+
+                Rxj.append(Rxi_sz * (1 / SZ.theta_after) * GP.dt)
+
+                ## Coeficiente de difusao ##
+                Di_sz = fD_x(Vi_sz)
+                Pe_sz = fPe_sz(Vi_sz, Di_sz)
+
+                if USZ.m_usz < (GP.n - 1):
+                    if Pe_sz <= 2:
+                        if j == 0:  # first cell
+                            dc = cjplus1 - 2 * cj_sz + cmminus1
+                            dc_dz = (cjplus1 - cmminus1) / (2 * GP.dz)
+
+                        elif j == (SZ.m_sz - 1):  # last cell
+                            dc = cj_sz - 2 * cj_sz + cjminus1
+                            dc_dz = (cj_sz - cjminus1) / GP.dz
+
+                        else:
+                            dc = cjplus1 - 2 * cj_sz + cjminus1
+                            dc_dz = (cjplus1 - cjminus1) / (2 * GP.dz)
+
+                    else:  # Pesz > 2
+                        if j == 0:  # first cell
+                            dc = cjplus1 - 2 * cj_sz + cmminus1
+                            dc_dz = (cj_sz - cmminus1) / GP.dz
+
+                        elif j == (SZ.m_sz - 1):  # last cell
+                            dc = cj_sz - 2 * cj_sz + cjminus1
+                            dc_dz = (cj_sz - cjminus1) / GP.dz
+
+                        else:
+                            dc = cjplus1 - 2 * cj_sz + cjminus1
+                            dc_dz = (cj_sz - cjminus1) / GP.dz
+
+                if USZ.m_usz == (GP.n - 1):
+                    dc = cj_sz - 2 * cj_sz + cjminus1
+                    dc_dz = (cj_sz - cjminus1) / (2 * GP.dz)
+
+                if USZ.m_usz == 0:
+                    if Pe_sz <= 2:
+                        if j == 0:  # first cell
+                            dc = cjplus1 - 2 * cj_sz + EC.concentration_pz_now
+                            dc_dz = (cjplus1 - EC.concentration_pz_now) / (2 * GP.dz)
+
+                        elif j == (SZ.m_sz - 1):  # last cell
+                            dc = cj_sz - 2 * cj_sz + cjminus1
+                            dc_dz = (cj_sz - cjminus1) / GP.dz
+
+                        else:
+                            dc = cjplus1 - 2 * cj_sz + cjminus1
+                            dc_dz = (cjplus1 - cjminus1) / (2 * GP.dz)
+
+                    else:  # EC.peclet > 2
+                        if j == 0:  # first cell
+                            dc = cjplus1 - 2 * cj_sz + EC.concentration_pz_now
+                            dc_dz = (cj_sz - EC.concentration_pz_now) / GP.dz
+
+                        elif j == (SZ.m_sz - 1):  # last cell
+                            dc = cj_sz - 2 * cj_sz + cjminus1
+                            dc_dz = (cj_sz - cjminus1) / GP.dz
+
+                        else:
+                            dc = cjplus1 - 2 * cj_sz + cjminus1
+                            dc_dz = (cj_sz - cjminus1) / GP.dz
+
+
+                delta_c_sz = ftransport(SZ.theta[time], SZ.theta_after, cj_sz, csoil_sz, dc, dc_dz, EC.kads2, EC.kdes2,
+                                        Di_sz, Vi_sz, Rxi_sz)
+
+                if SZ.theta_after > 0:
+                    ci1 = cj_sz + delta_c_sz
+                else:
+                    ci1 = 0
+
+                if ci1 < 0.01:
+                    ci1 = 0
+                else:
+                    ci1 = ci1
+
+                cj_i1.append(ci1)
+
+        # Corrective step
+
+        if GP.hpipe > 0.03:
+
+            Mstor_ast = sum(EC.concentration_usz[time]) * PZ.Ab * USZ.theta[time] * USZ.height[time] * 1 / USZ.m_usz + sum(EC.concentration_sz[time]) * PZ.Ab * \
+                        SZ.theta[time] * SZ.height[time] * 1 / SZ.m_sz
+            EC.Mstor_ast_list.append(Mstor_ast)
+
+            Msoil_a = EC.concentration_soil_usz_before * SOIL_PLANT.ro * PZ.Ab * USZ.height[time] * 1 + EC.csoil_sz_a * SOIL_PLANT.ro * PZ.Ab * SZ.height[time] * 1
+            Msoil = sum(EC.concentration_soil_usz[time]) * SOIL_PLANT.ro * PZ.Ab * USZ.height[time] * 1 / USZ.m_usz + sum(EC.concentration_soil_usz[time]) * SOIL_PLANT.ro * PZ.Ab * SZ.height[
+                time] * 1 / SZ.m_sz
+            EC.Msoil_acum.append(Msoil - Msoil_a)
+
+            MRx = - (sum(EC.Rx_usz_list[time]) * PZ.Ab * USZ.theta[time] * USZ.height[time] * 1 / USZ.m_usz + sum(EC.Rx_sz_list[time]) * PZ.Ab *
+                     SZ.theta[time] * SZ.height[time] * 1 / SZ.m_sz)
+
+            if time == 0:
+                EC.MRx_acum.append(MRx)
+            else:
+                EC.MRx_acum.append(MRx + EC.MRx_acum[-1])
+
+            M_in = GP.inflow[time] * EC.concentration_inflow[time] * GP.dt * 1
+            if time == 0:
+                EC.M_in_acum.append(M_in)
+            else:
+                EC.M_in_acum.append(M_in + EC.M_in_acum[-1])
+
+            M_over = PZ.overflow[time] * EC.concentration_pz[time] * GP.dt * 1
+            if time == 0:
+                EC.M_over_acum.append(M_over)
+            else:
+                EC.M_over_acum.append(M_over + EC.M_over_acum[-1])
+
+            Mpipe = SZ.pipe_outflow[time] * EC.concentration_sz[time][SZ.m_sz - 1] * GP.dt * 1
+            if time == 0:
+                EC.Mpipe_acum.append(Mpipe)
+            else:
+                EC.Mpipe_acum.append(Mpipe + EC.Mpipe_acum[-1])
+
+            Minf_sz = SZ.infiltration_to_surround[time] * EC.concentration_sz[time][SZ.m_sz - 1] * GP.dt * 1
+            if time == 0:
+                EC.Minf_sz_acum.append(Minf_sz)
+            else:
+                EC.Minf_sz_acum.append(Minf_sz + EC.Minf_sz_acum[-1])
+
+            M_et = PZ.evapotranspiration_overall[time] * EC.concentration_usz_layers_now[0] * GP.dt * 1
+            if time == 0:
+                EC.M_et_acum.append(M_et)
+            else:
+                EC.M_et_acum.append(M_et + EC.M_et_acum[-1])
+
+            M_pz = PZ.height_after[time] * PZ.Ab * 1 * EC.concentration_pz[time]
+            EC.M_pz_list.append(M_pz)
+
+            Mstor_mb = EC.M_in_acum[-1] - EC.M_pz_list[-1] - EC.M_over_acum[-1] - EC.Mpipe_acum[-1] - \
+                       EC.Minf_sz_acum[-1] - EC.M_et_acum[-1] - EC.Msoil_acum[-1] - EC.MRx_acum[-1]
+            EC.Mstor_mb_list.append(Mstor_mb)
+
+            delta_ast_usz = (Mstor_mb - Mstor_ast) / (PZ.Ab * USZ.theta[time] * USZ.height[time] * 1 / USZ.m_usz)
+            EC.concentration_usz_layers_now[1] = EC.concentration_usz_layers_now[1] + delta_ast_usz
+            if EC.concentration_usz_layers_now[1] > 0:
+                EC.concentration_usz_layers_now[1] = EC.concentration_usz_layers_now[1]
+            else:
+                EC.concentration_usz_layers_now[1] = 0
+
+        if GP.hpipe == 0:
+            Mstor_ast = sum(EC.concentration_usz[time]) * PZ.Ab * USZ.theta[time] * USZ.height[time] * 1 / USZ.m_usz
+            EC.Mstor_ast_list.append(Mstor_ast)
+
+            Msoil_a = EC.concentration_soil_usz_before * SOIL_PLANT.ro * PZ.Ab * USZ.height[time] * 1
+            Msoil = sum(EC.concentration_soil_usz[time]) * SOIL_PLANT.ro * PZ.Ab * USZ.height[time] * 1 / USZ.m_usz
+            EC.Msoil_acum.append(Msoil - Msoil_a)
+
+            MRx = - (sum(EC.Rx_usz_list[time]) * PZ.Ab * USZ.theta[time] * USZ.height[time] * 1 / USZ.m_usz)
+            if time == 0:
+                EC.MRx_acum.append(MRx)
+            else:
+                EC.MRx_acum.append(MRx + EC.MRx_acum[-1])
+
+            M_in = GP.inflow[time] * EC.concentration_inflow[time] * GP.dt * 1
+            if time == 0:
+                EC.M_in_acum.append(M_in)
+            else:
+                EC.M_in_acum.append(M_in + EC.M_in_acum[-1])
+
+            M_over = PZ.overflow[time] * EC.concentration_pz[time] * GP.dt * 1
+            if time == 0:
+                EC.M_over_acum.append(M_over)
+            else:
+                EC.M_over_acum.append(M_over + EC.M_over_acum[-1])
+
+            Mpipe = SZ.pipe_outflow[time] * EC.concentration_usz[time][USZ.m_usz - 1] * GP.dt * 1
+            if time == 0:
+                EC.Mpipe_acum.append(Mpipe)
+            else:
+                EC.Mpipe_acum.append(Mpipe + EC.Mpipe_acum[-1])
+
+            Minf_sz = SZ.infiltration_to_surround[time] * EC.concentration_usz[time][USZ.m_usz - 1] * GP.dt * 1
+            if time == 0:
+                EC.Minf_sz_acum.append(Minf_sz)
+            else:
+                EC.Minf_sz_acum.append(Minf_sz + EC.Minf_sz_acum[-1])
+
+            M_et = PZ.evapotranspiration_overall[time] * EC.concentration_usz_layers_now[0] * GP.dt * 1
+            if time == 0:
+                EC.M_et_acum.append(M_et)
+            else:
+                EC.M_et_acum.append(M_et + EC.M_et_acum[-1])
+
+            M_pz = PZ.height_after[time] * PZ.Ab * 1 * EC.concentration_pz[time]
+            EC.M_pz_list.append(M_pz)
+
+            Mstor_mb = EC.M_in_acum[-1] - EC.M_pz_list[-1] - EC.M_over_acum[-1] - EC.Mpipe_acum[-1] - EC.Minf_sz_acum[-1] - EC.M_et_acum[
+                -1] - EC.Msoil_acum[-1] - EC.MRx_acum[-1]
+            EC.Mstor_mb_list.append(Mstor_mb)
+
+            delta_ast_usz = (Mstor_mb - Mstor_ast) / (PZ.Ab * USZ.theta[time] * USZ.height[time] * 1 / USZ.m_usz)
+            EC.concentration_usz_layers_now[1] = EC.concentration_usz_layers_now[1] + delta_ast_usz
+            if EC.concentration_usz_layers_now[1] > 0:
+                EC.concentration_usz_layers_now[1] = EC.concentration_usz_layers_now[1]
+            else:
+                EC.concentration_usz_layers_now[1] = 0
+
+        EC.concentration_soil_usz.append(EC.concentration_soil_usz_now)
+        EC.concentration_usz.append(EC.concentration_usz_layers_now)
+        EC.Rx_usz_list.append(EC.reaction_rate_usz_layers)
+
+        if GP.hpipe >= 0.03:
+            EC.csoil_sz_list.append(csoil_i_sz)
+            EC.concentration_sz.append(cj_i1)
+            EC.Rx_sz_list.append(Rxj)
+
+    # **5. Transforming in dataframe **
+    ## E Coli
+    data_usz = pd.DataFrame(EC.concentration_usz)
+    a = 0
+    column_name = []
+    for i in range(USZ.m_usz):
+        name = 'usz' + str(a)
+        column_name.append(name)
+        a = a + 1
+    data_usz.set_axis(column_name, axis='columns', inplace=True)
+
+    data_sz = pd.DataFrame(EC.concentration_sz)
+    a = 0
+    column_name = []
+    for i in range(SZ.m_sz):
+        name = 'sz' + str(a)
+        column_name.append(name)
+        a = a + 1
+    data_sz.set_axis(column_name, axis='columns', inplace=True)
+
+
+    data_soil_usz = pd.DataFrame(EC.concentration_soil_usz)
+    a = 0
+    column_name = []
+    for i in range(USZ.m_usz):
+        name = 'usz_soil' + str(a)
+        column_name.append(name)
+        a = a + 1
+    data_soil_usz.set_axis(column_name, axis='columns', inplace=True)
+
+    data_soil_sz = pd.DataFrame(EC.csoil_sz_list)
+    a = 0
+    column_name = []
+    for i in range(SZ.m_sz):
+        name = 'sz_soil' + str(a)
+        column_name.append(name)
+        a = a + 1
+    data_soil_sz.set_axis(column_name, axis='columns', inplace=True)
+
+    data_rx_usz = pd.DataFrame(EC.Rx_usz_list)
+    a = 0
+    column_name = []
+    for i in range(USZ.m_usz):
+        name = 'usz_rx' + str(a)
+        column_name.append(name)
+        a = a + 1
+    data_rx_usz.set_axis(column_name, axis='columns', inplace=True)
+
+    data_rx_sz = pd.DataFrame(EC.Rx_sz_list)
+    a = 0
+    column_name = []
+    for i in range(SZ.m_sz):
+        name = 'sz_rx' + str(a)
+        column_name.append(name)
+        a = a + 1
+    data_rx_sz.set_axis(column_name, axis='columns', inplace=True)
+
+    frames = [data_usz, data_sz, data_soil_usz, data_soil_sz, data_rx_usz, data_rx_sz]
+    data_EColi = pd.concat((frames), axis=1)
+
+    # ----- teste
+    cpz_list_calib = EC.concentration_pz[:]
+    cpz_list_calib.append(0)
+    data_EColi['cpz'] = cpz_list_calib
+    EC.concentration_inflow[time] = EC.concentration_inflow[:]
+    EC.concentration_inflow[time].append(0)
+    c_in = EC.concentration_inflow[time][:len(GP.rain_inflow)]
+    data_EColi['c_in'] = c_in
+
+    data_EColi['t'] = range(len(GP.rain_inflow))
+
+    Qorif_list = SZ.pipe_outflow[:len(GP.rain_inflow)]
+
+    data_EColi['Qorif'] = Qorif_list
+
+    if GP.hpipe > 0:
+        data_EColi['Morif'] = data_EColi['Qorif'] * data_EColi['sz3'] * 1000  # m3/s
+    else:
+        data_EColi['Morif'] = data_EColi['Qorif'] * data_EColi['usz10'] * 1000  # m3/s
+
+    return data_EColi
+
+
+if __name__ == '__main__':
+    SETUP_FILE = "parameters.ini"
+    WATER_FLOW_INPUT_FILE = "input_files/ecoli/test_event/water_inflow.csv"
+    WATER_QUALITY_INPUT_FILE = "input_files/ecoli/test_event/concentration_inflow.csv"
+    GP = parameters.GeneralParameters(SETUP_FILE, WATER_FLOW_INPUT_FILE)
+    USZ = parameters.UnsaturatedZone(SETUP_FILE, GP.L, GP.hpipe, GP.dz)
+    PZ = parameters.PondingZone(SETUP_FILE)
+    SZ = parameters.SaturatedZone(SETUP_FILE, GP, USZ)
+    SOIL_PLANT = parameters.SoilPlant(SETUP_FILE, USZ.nusz_ini)
+    EC = parameters.Ecoli(USZ.nusz_ini, USZ.m_usz, SZ.m_sz, SETUP_FILE, WATER_QUALITY_INPUT_FILE)
+    water_flow_module(GP, USZ, PZ, SZ)
+    data_EColi = ecoli_module(GP, PZ, USZ, SZ, SOIL_PLANT, EC)
+
+    #data_EColi.to_csv('EColi_results_calib.csv', index=False, sep=';', decimal=',')
+    print('Done!')
+
+
+from tests import water_quality_comparison_test
+
+errors = water_quality_comparison_test("test_files/ecoli_tested_thalita_parameters.csv", data_EColi)
+print(errors)
+
+
