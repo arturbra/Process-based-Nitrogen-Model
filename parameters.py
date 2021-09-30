@@ -280,8 +280,12 @@ class SaturatedZone:
         return height
 
     def f_alfa_beta(self, j):
-        alfa2 = (self.m_sz - 1 - j) / (self.m_sz - 1)
-        beta2 = j / (self.m_sz - 1)
+        if self.m_sz <= 1:
+            alfa2 = 0.5
+            beta2 = 0.5
+        else:
+            alfa2 = (self.m_sz - 1 - j) / (self.m_sz - 1)
+            beta2 = j / (self.m_sz - 1)
         return alfa2, beta2
 
     def f_unit_flux(self, time, sz_layer, PZ, USZ):

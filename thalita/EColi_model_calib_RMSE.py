@@ -97,13 +97,13 @@ from thalita.water_flow_model_corrigido import *
 
 wf_run()
 
-cin_file = pd.read_csv('thalita/01_Cin_file2.csv')
+cin_file = pd.read_csv('thalita/arquivos_entrada_modelo_ecoli_ev_03_21/01_Cin_file2.csv')
 cin_list = cin_file['Cin e coli [mg/L]'].tolist()
 
-Temp_file = pd.read_csv('thalita/01_Temperature_file2.csv')
+Temp_file = pd.read_csv('thalita/arquivos_entrada_modelo_ecoli_ev_03_21/01_Temperature_file2.csv')
 tTemp = Temp_file['Temperature [celsius]'].tolist()
 
-Qin_file = pd.read_csv('thalita/01_Qin_file2.csv')
+Qin_file = pd.read_csv('thalita/arquivos_entrada_modelo_ecoli_ev_03_21/01_Qin_file2.csv')
 Qin_list = Qin_file['Qin'].tolist()
 
 # cin_file = pd.read_csv('input_file_Cin.csv')
@@ -674,7 +674,7 @@ def EColi_run(param):
             Mstor_ast_list.append(Mstor_ast)
 
             Msoil_a = csoil_usz_a * ro * Ab * thusz[t] * 1 + csoil_sz_a * ro * Ab * thsz[t] * 1
-            Msoil = sum(csoil_usz_list[t]) * ro * Ab * thusz[t] * 1 / m_usz + sum(csoil_usz_list[t]) * ro * Ab * thsz[
+            Msoil = sum(csoil_usz_list[t]) * ro * Ab * thusz[t] * 1 / m_usz + sum(csoil_sz_list[t]) * ro * Ab * thsz[
                 t] * 1 / m_sz
             Msoil_acum.append(Msoil - Msoil_a)
 
@@ -886,10 +886,10 @@ def EColi_run(param):
 
     data_EColi['Qorif'] = Qorif_list
 
-    if hpipe > 0:
-        data_EColi['Morif'] = data_EColi['Qorif'] * data_EColi['sz3'] * 1000  # m3/s
-    else:
-        data_EColi['Morif'] = data_EColi['Qorif'] * data_EColi['usz10'] * 1000  # m3/s
+    # if hpipe > 0.03:
+    #     data_EColi['Morif'] = data_EColi['Qorif'] * data_EColi['sz3'] * 1000  # m3/s
+    # else:
+    #     data_EColi['Morif'] = data_EColi['Qorif'] * data_EColi['usz10'] * 1000  # m3/s
 
     # ------
     # cpz.append(0)
@@ -914,7 +914,7 @@ if __name__ == '__main__':
 
     data_EColi = EColi_run(param)
 
-    data_EColi.to_csv('ecoli_tested_thalita_parameters.csv', index=False, sep=',', decimal='.')
+    data_EColi.to_csv('test_changing_parameters.csv', index=False, sep=',', decimal='.')
 
     fim = datetime.datetime.now()
     print('Elapsed time: ', fim - inicio)

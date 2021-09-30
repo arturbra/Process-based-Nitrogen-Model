@@ -469,7 +469,6 @@ def ecoli_module(GP, PZ, USZ, SZ, SOIL_PLANT, EC):
     data_EColi = EC.water_quality_results(USZ, SZ)
     data_EColi['cpz'] = EC.concentration_pz
     data_EColi['Qorif'] = SZ.pipe_outflow[:len(GP.rain_inflow)]
-    data_EColi['Morif'] = data_EColi['Qorif'] * data_EColi['sz3'] * 1000
     return data_EColi
 
 
