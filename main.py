@@ -45,9 +45,9 @@ if __name__ == "__main__":
             break
 
         elif action == "e":
-            SETUP_FILE = "parameters_test.ini"
-            WATER_FLOW_INPUT_FILE = "input_files/ecoli/test_event_3_21/water_inflow.csv"
-            WATER_QUALITY_INPUT_FILE = "input_files/ecoli/test_event_3_21/concentration_inflow.csv"
+            SETUP_FILE = "parameters.ini"
+            WATER_FLOW_INPUT_FILE = "input_files/ecoli/test_event/water_inflow.csv"
+            WATER_QUALITY_INPUT_FILE = "input_files/ecoli/test_event/concentration_inflow.csv"
             GP = parameters.GeneralParameters(SETUP_FILE, WATER_FLOW_INPUT_FILE)
             USZ = parameters.UnsaturatedZone(SETUP_FILE, GP.L, GP.hpipe, GP.dz)
             PZ = parameters.PondingZone(SETUP_FILE)

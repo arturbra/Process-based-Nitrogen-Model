@@ -1,5 +1,5 @@
 import configparser
-from math import pi
+from math import pi, log10
 import pandas as pd
 import numpy as np
 import random
@@ -1033,29 +1033,6 @@ class Ecoli(Pollutant):
         self.mue2 = self.mue1
         self.kdes2 = self.kdes1
         self.lamta2 = self.lamta1
-        self.c_usz_list = []
-        self.csoil_usz_list = []
-        self.c_sz_list = []
-        self.csoil_sz_list = []
-        self.cpz_a = 0
-        self.cpz = []
-        self.Rx_usz_list = []
-        self.Rx_sz_list = []
-        self.csoil_usz_a = 0
-        self.csoil_sz_a = 0
-        self.c0_usz = [0]
-        self.c0_usz = self.c0_usz * m_usz
-        self.csoil0_usz = [self.csoil_usz_a]
-        self.csoil0_usz = self.csoil0_usz * m_usz
-        self.c_usz_list.append(self.c0_usz)
-        self.csoil_usz_list.append(self.csoil0_usz)
-        self.Rx_usz_list.append(self.c0_usz)
-        # E_coli #SZ
-        self.c0_sz = [0]
-        self.c0_sz = self.c0_sz * m_sz
-        self.c_sz_list.append(self.c0_sz)
-        self.csoil_sz_list.append(self.c0_sz)
-        self.Rx_sz_list.append(self.c0_sz)
         csv_file = pd.read_csv(inflow_file, sep=';')
         self.concentration_inflow = csv_file['ecoli'].tolist()
         self.temperature = csv_file['temperature'].tolist()
@@ -1210,6 +1187,53 @@ class Ecoli(Pollutant):
         self.concentration_usz_layers_now[1] = self.concentration_usz_layers_now[1] + concentration_delta
         if self.concentration_usz_layers_now[1] < 0:
             self.concentration_usz_layers_now[1] = 0
+
+    def f_log_transformation(self, untransformed_list):
+        if any(isinstance(el, list) for el in untransformed_list):
+            log_list = [[log10(abs(x)) if x != 0 else 0 for x in group] for group in untransformed_list]
+        else:
+            log_list = [log10(abs(x)) if x != 0 else 0 for x in untransformed_list]
+        return log_list
+
+    def water_quality_results(self, GP, USZ, SZ, log_transformation):
+        columns_name = ["usz" + str(num) for num in range(USZ.m_usz)]
+        columns_name += ["sz" + str(num) for num in range(SZ.m_sz)]
+        if len(self.concentration_soil_usz) != 0:
+            columns_name += ["usz_soil" + str(num) for num in range(USZ.m_usz)]
+        if len(self.concentration_soil_sz) != 0:
+            columns_name += ["sz_soil" + str(num) for num in range(SZ.m_sz)]
+        columns_name += ["usz_rx" + str(num) for num in range(USZ.m_usz)]
+        columns_name += ["sz_rx" + str(num) for num in range(SZ.m_sz)]
+        extra_columns = ['cpz', 'Qin', 'Qorif', 't']
+        columns_name += extra_columns
+
+        if log_transformation:
+            df_usz = pd.DataFrame(self.concentration_usz_log)
+            df_sz = pd.DataFrame(self.concentration_sz_log)
+            df_soil_usz = pd.DataFrame(self.concentration_soil_usz_log)
+            df_soil_sz = pd.DataFrame(self.concentration_soil_sz_log)
+            df_rx_usz = pd.DataFrame(self.reaction_rate_usz_log)
+            df_rx_sz = pd.DataFrame(self.reaction_rate_sz_log)
+            self.concentration_pz_log.append(0)
+            df_pz = pd.DataFrame(self.concentration_pz_log)
+            df_in = pd.DataFrame(self.concentration_inflow_log)
+        else:
+            df_usz = pd.DataFrame(self.concentration_usz)
+            df_sz = pd.DataFrame(self.concentration_sz)
+            df_soil_usz = pd.DataFrame(self.concentration_soil_usz)
+            df_soil_sz = pd.DataFrame(self.concentration_soil_sz)
+            df_rx_usz = pd.DataFrame(self.reaction_rate_usz)
+            df_rx_sz = pd.DataFrame(self.reaction_rate_sz)
+            self.concentration_pz_log.append(0)
+            df_pz = pd.DataFrame(self.concentration_pz)
+            df_in = pd.DataFrame(self.concentration_inflow)
+
+        df_overflow = pd.DataFrame(SZ.pipe_outflow[:len(GP.rain_inflow)])
+        df_t = pd.DataFrame(list(range(len(self.concentration_usz))))
+        frames = [df_usz, df_sz, df_soil_usz, df_soil_sz, df_rx_usz, df_rx_sz, df_pz, df_in, df_overflow, df_t]
+        df = pd.concat(frames, axis=1)
+        df.columns = columns_name
+        return df
 
 
 

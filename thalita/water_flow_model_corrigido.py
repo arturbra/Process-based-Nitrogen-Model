@@ -39,7 +39,7 @@ tQin = Qin_file['Qin'].tolist()
 
 ###  2. Definition of parameters
 
-setup_file = "thalita/parametros_teste.ini"
+setup_file = "thalita/parametros_quanti_RSUP.ini"
 setup = configparser.ConfigParser()
 setup.read(setup_file)
 

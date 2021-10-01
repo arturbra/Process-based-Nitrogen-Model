@@ -15,7 +15,7 @@ plt.style.use('ggplot')
 print('Starting..')
 inicio = datetime.datetime.now()
 
-setup_file = "parametros_quali_NSE.ini"
+setup_file = "thalita/parametros_quali_NSE.ini"
 setup = configparser.ConfigParser()
 setup.read(setup_file)
 
@@ -95,20 +95,20 @@ def get_from_individual(individual):
 
 
 # **2. Input variables**
-from water_flow_model_corrigido import *
+from thalita.water_flow_model_corrigido import *
 
 wf_run()
 
-cin_file = pd.read_csv('01_Cin_file2.csv')
+cin_file = pd.read_csv('thalita/01_Cin_file2.csv')
 cin_list = cin_file['Cin e coli [mg/L]'].tolist()
 
-log_cin_file = pd.read_csv ('input_file_Cin_log.csv')
+log_cin_file = pd.read_csv ('thalita/input_file_Cin_log.csv')
 log_cin_list = log_cin_file['Cin log'].tolist()
 
-Temp_file = pd.read_csv('01_Temperature_file2.csv')
+Temp_file = pd.read_csv('thalita/01_Temperature_file2.csv')
 tTemp = Temp_file['Temperature [celsius]'].tolist()
 
-Qin_file = pd.read_csv('01_Qin_file2.csv')
+Qin_file = pd.read_csv('thalita/01_Qin_file2.csv')
 Qin_list = Qin_file['Qin'].tolist()
 
 # cin_file = pd.read_csv('input_file_Cin.csv')
@@ -728,7 +728,7 @@ def EColi_run(param):
             Mstor_ast_list.append(Mstor_ast)
 
             Msoil_a = csoil_usz_a * ro * Ab * thusz[t] * 1 + csoil_sz_a * ro * Ab * thsz[t] * 1
-            Msoil = sum(csoil_usz_list[t]) * ro * Ab * thusz[t] * 1 / m_usz + sum(csoil_usz_list[t]) * ro * Ab * thsz[
+            Msoil = sum(csoil_usz_list[t]) * ro * Ab * thusz[t] * 1 / m_usz + sum(csoil_sz_list[t]) * ro * Ab * thsz[
                 t] * 1 / m_sz
             Msoil_acum.append(Msoil - Msoil_a)
 
@@ -1140,7 +1140,7 @@ if __name__ == '__main__':
 
     data_EColi_log = EColi_run(param)
 
-    data_EColi_log.to_csv('EColi_results_calib_NSE_LOG.csv', index=False, sep=';', decimal=',')
+    data_EColi_log.to_csv('test_log.csv', index=False, sep=',', decimal='.')
 
     fim = datetime.datetime.now()
     print('Elapsed time: ', fim - inicio)

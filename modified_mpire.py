@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-import parameters
-import tests
-
 def water_flow_module(GP, USZ, PZ, SZ):
     for time in range(len(GP.rain_inflow)):
         # PZ
@@ -328,7 +325,7 @@ def nitrogen_module(GP, PZ, USZ, SZ, SOIL_PLANT, NH4, NO3, O2, DOC):
     return data_o2, data_nh4, data_no3, data_doc
 
 
-def ecoli_module(GP, PZ, USZ, SZ, SOIL_PLANT, EC):
+def ecoli_module(GP, PZ, USZ, SZ, SOIL_PLANT, EC, log_transformation=True):
     ##### Ponding Zone
     for time in range(len(GP.rain_inflow) - 1):
         PZ.height_now = PZ.height_after[time]
@@ -400,14 +397,13 @@ def ecoli_module(GP, PZ, USZ, SZ, SOIL_PLANT, EC):
                 USZ.unit_flux_now = USZ.f_unit_flux(time, usz_layer, GP, PZ, SZ)
                 USZ.unit_flux.append(USZ.unit_flux_now)
 
-                ## Reacoes ## dieoff_l (parte liquida) + straining + dieoff (parte solida)
+                # Reactions
                 EC.dieoff_liquid_phase = EC.f_dieoff_liquid_phase_usz(time, usz_layer, USZ)
                 EC.straining = EC.f_straining()
                 EC.dieoff_solid_phase = EC.f_dieoff_solid_phase_usz(usz_layer)
                 EC.reaction_rate_usz_now = EC.dieoff_liquid_phase + EC.straining + EC.dieoff_solid_phase
                 EC.reaction_rate_usz_layers.append(EC.reaction_rate_usz_now * (1 / USZ.theta_after) * GP.dt)
 
-                ## Coeficiente de difusao ##
                 EC.D = EC.f_diffusion_coefficient_usz(USZ)
                 EC.kads = EC.kads1
                 EC.kdes = EC.kdes1
@@ -464,42 +460,17 @@ def ecoli_module(GP, PZ, USZ, SZ, SOIL_PLANT, EC):
             EC.concentration_sz.append(EC.concentration_sz_layers_now)
             EC.reaction_rate_sz.append(EC.reaction_rate_sz_layers)
 
+    if log_transformation:
+        EC.concentration_inflow_log = EC.f_log_transformation(EC.concentration_inflow)
+        EC.concentration_pz_log = EC.f_log_transformation(EC.concentration_pz)
+        EC.concentration_soil_usz_log = EC.f_log_transformation(EC.concentration_soil_usz)
+        EC.concentration_usz_log = EC.f_log_transformation(EC.concentration_usz)
+        EC.reaction_rate_usz_log = EC.f_log_transformation(EC.reaction_rate_usz)
+        EC.concentration_soil_sz_log = EC.f_log_transformation(EC.concentration_soil_sz)
+        EC.concentration_sz_log = EC.f_log_transformation(EC.concentration_sz)
+        EC.reaction_rate_sz_log = EC.f_log_transformation(EC.reaction_rate_sz)
+
     # **5. Transforming in dataframe **
-    ## E Coli
-    data_EColi = EC.water_quality_results(USZ, SZ)
-    data_EColi['cpz'] = EC.concentration_pz
-    data_EColi['Qorif'] = SZ.pipe_outflow[:len(GP.rain_inflow)]
-    return data_EColi
+    data_ecoli = EC.water_quality_results(GP, USZ, SZ, log_transformation)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    return data_ecoli
