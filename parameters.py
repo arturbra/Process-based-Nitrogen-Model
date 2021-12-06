@@ -33,7 +33,7 @@ class GeneralParameters:
         self.dpipe = float(setup['SATURATED_ZONE']['dpipe'])
         self.Cd = float(setup['SATURATED_ZONE']['Cd'])
         self.Apipe = pi * (self.dpipe / (1000 * 2)) ** 2
-        csv_file = pd.read_csv(input_file, sep=";")
+        csv_file = pd.read_csv(input_file)
         self.inflow = csv_file["Qin"]
         self.evapotranspiration_max = csv_file["ET"]
         self.rain_inflow = csv_file["Qrain"]
@@ -818,7 +818,7 @@ class Ammonia(Pollutant):
         self.k_mb = float(setup['NH4']['k_nh4_mb'])
         self.Fm = float(setup['NH4']['Fm_nh4'])
         self.Km = float(setup['NH4']['Km_nh4'])
-        csv_file = pd.read_csv(inflow_file, sep=';')
+        csv_file = pd.read_csv(inflow_file)
         self.concentration_inflow = csv_file['nh4'].tolist()
 
     def f_reaction_pz(self):
@@ -855,7 +855,7 @@ class Nitrate(Pollutant):
         self.kdes = 0
         self.kads2 = 0
         self.kdes2 = 0
-        csv_file = pd.read_csv(inflow_file, sep=';')
+        csv_file = pd.read_csv(inflow_file)
         self.concentration_inflow = csv_file['no3'].tolist()
 
     def f_reaction_pz(self):
@@ -927,7 +927,7 @@ class Oxygen(Pollutant):
         self.kdes = 0
         self.kads2 = 0
         self.kdes2 = 0
-        csv_file = pd.read_csv(inflow_file, sep=';')
+        csv_file = pd.read_csv(inflow_file)
         self.concentration_inflow = csv_file['o2'].tolist()
 
     def f_reaction_pz(self):
@@ -998,7 +998,7 @@ class DissolvedOrganicCarbon(Pollutant):
         self.kads2 = float(setup['DOC']['kads2_doc'])
         self.kdes2 = float(setup['DOC']['kdes2_doc'])
         self.k_mb = float(setup['DOC']['k_doc_mb'])
-        csv_file = pd.read_csv(inflow_file, sep=';')
+        csv_file = pd.read_csv(inflow_file)
         self.concentration_inflow = csv_file['doc'].tolist()
 
     def f_reaction_pz(self):
@@ -1033,7 +1033,7 @@ class Ecoli(Pollutant):
         self.mue2 = self.mue1
         self.kdes2 = self.kdes1
         self.lamta2 = self.lamta1
-        csv_file = pd.read_csv(inflow_file, sep=';')
+        csv_file = pd.read_csv(inflow_file)
         self.concentration_inflow = csv_file['ecoli'].tolist()
         self.temperature = csv_file['temperature'].tolist()
 
@@ -1236,27 +1236,6 @@ class Ecoli(Pollutant):
         return df
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class MassBalance:
     def __init__(self, GP, PZ, USZ, SZ):
         inflow_volume = GP.inflow.sum() * GP.dt * 1000
@@ -1297,6 +1276,50 @@ class MassBalance:
         else:
             print("\033[1:31mNot acceptable mass balance: {:.2f} % de erro\033[m".format(percentage))
 
+
+class RealTimeControl:
+    def __init__(self, setup_file):
+        setup = configparser.ConfigParser()
+        setup.read(setup_file)
+        self.rtc = bool(setup['REAL_TIME_CONTROL']['rtc'])
+        self.strategy = int(setup['REAL_TIME_CONTROL']['strategy'])
+        self.times_actuated = 0
+        self.lower_target = float(setup['REAL_TIME_CONTROL']['lower_target'])
+        self.higher_target = float(setup['REAL_TIME_CONTROL']['higher_target'])
+
+    def control(self, time, GP, USZ, SZ):
+        if self.strategy == 1:
+            if SZ.height_estimated[time - 1] < SZ.height_estimated[time]:
+                rising_height = True
+            else:
+                rising_height = False
+
+            if SZ.height_estimated[time] < self.lower_target:
+                pipe_outflow = 0
+
+            if self.lower_target <= SZ.height_estimated[time] <= self.higher_target:
+                if rising_height:
+                    pipe_outflow = 0
+                else:
+                    pipe_outflow = SZ.f_underdrain_flow(time, GP, USZ)
+            if SZ.height_estimated[time] > self.higher_target:
+                pipe_outflow = SZ.f_underdrain_flow(time, GP, USZ)
+
+        if self.strategy == 2:
+            pipe_outflow = USZ.infiltration_to_sz[time] - USZ.capillary_rise[time] - SZ.infiltration_to_surround[time] - USZ.evapotranspiration[time] - (USZ.A * (self.higher_target - SZ.height_now) / (SZ.porosity_now * GP.dt))
+            if pipe_outflow < 0:
+                pipe_outflow = 0
+
+        if time != 0:
+            if SZ.pipe_outflow[-1] == 0:
+                if pipe_outflow != 0:
+                    self.times_actuated += 1
+
+            if SZ.pipe_outflow[-1] != 0:
+                if pipe_outflow == 0:
+                    self.times_actuated += 1
+
+        return pipe_outflow
 
 
 

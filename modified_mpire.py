@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-def water_flow_module(GP, USZ, PZ, SZ):
+def water_flow_module(GP, USZ, PZ, SZ, RTC=False):
     for time in range(len(GP.rain_inflow)):
         # PZ
         PZ.overflow.append(PZ.f_weir_overflow(time, GP))
@@ -23,7 +23,17 @@ def water_flow_module(GP, USZ, PZ, SZ):
         # SZ
         SZ.height_estimated.append(SZ.f_height_estimation(time, GP, USZ))
         SZ.infiltration_to_surround.append(SZ.f_infiltration_to_surround(time, PZ, USZ))
-        SZ.pipe_outflow.append(SZ.f_underdrain_flow(time, GP, USZ))
+
+        if str(type(RTC)) == "<class 'parameters.RealTimeControl'>":
+            if RTC.strategy == 1:
+                SZ.pipe_outflow.append(RTC.control(time, GP, USZ, SZ))
+            if RTC.strategy == 2:
+                SZ.pipe_outflow.append(RTC.control(time, GP, USZ, SZ))
+
+        else:
+            SZ.pipe_outflow.append(SZ.f_underdrain_flow(time, GP, USZ))
+
+
         SZ.height_now = SZ.f_height(time, GP, USZ)
         USZ.height_now = USZ.f_height(GP, SZ)
 
