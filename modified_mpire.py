@@ -33,7 +33,6 @@ def water_flow_module(GP, USZ, PZ, SZ, RTC=False):
         else:
             SZ.pipe_outflow.append(SZ.f_underdrain_flow(time, GP, USZ))
 
-
         SZ.height_now = SZ.f_height(time, GP, USZ)
         USZ.height_now = USZ.f_height(GP, SZ)
 
