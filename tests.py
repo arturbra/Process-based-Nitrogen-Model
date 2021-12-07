@@ -1,6 +1,8 @@
+import random
+
 import numpy as np
 import pandas as pd
-
+import configparser
 
 def water_flow_comparison_test(original_water_flow_results_file, GP, PZ, USZ, SZ):
     water_flow_results = pd.read_csv(original_water_flow_results_file)
@@ -50,6 +52,34 @@ def water_quality_comparison_test(file, nutrient):
         if False in comparison:
             errors.append(c)
     return errors
+
+def read_variables_ini_file(ini_file):
+    setup = configparser.ConfigParser()
+    setup.read(ini_file)
+    ini_keys = list(setup.keys())[1:]
+    D = [dict(setup.items(k)) for k in ini_keys]
+    return ini_keys, D
+
+def change_variables_at_ini(ini_file, output_file_name):
+    ini_groups, ini_variables = read_variables_ini_file(ini_file)
+    banned_list = ['flagp', 'flagsz', 'dt', 'psz', 'show_summary', 'obs_file_ecoli']
+    for k in range(len(ini_variables)):
+        keys_variables = list(ini_variables[k].keys())
+        for l in keys_variables:
+            if l not in banned_list:
+                ini_variables[k][l] = float(ini_variables[k][l]) * random.uniform(0.8, 1.2)
+
+    setup = configparser.ConfigParser()
+    for i in range(len(ini_groups)):
+        setup[ini_groups[i]] = ini_variables[i]
+
+    with open(output_file_name, 'w') as setupfile:
+        setup.write(setupfile)
+
+def generate_ini_to_test(ini_quanti, ini_quali):
+    for i in range(5):
+        change_variables_at_ini(ini_quanti, f'parameters_quanti_{i}.ini')
+        change_variables_at_ini(ini_quali, f'parameters_quali_{i}.ini')
 
 
 
